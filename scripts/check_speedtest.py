@@ -22,10 +22,10 @@ BIG_SPONSORS_BY_COUNTRY = {
         "Singtel", "StarHub", "M1", "MyRepublic", "ViewQwest"
     },
     "JP": {
-        "NTT", "KDDI", "SoftBank", "Rakuten", "IIJ", "So-net"
+        "Verizon", "Contabo", "SoftBank", "Rakuten", "IPA CyberLab 400G", "So-net"
     },
     "VN": {
-        "FPT Telecom", "VNPT-NET", "Viettel"
+        "FPT Telecom", "VNPT-NET", "Viettel Network"
     }
 }
 
