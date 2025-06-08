@@ -15,15 +15,15 @@ def fetch_first_id(provider):
         response.raise_for_status()
         servers = response.json()
 
-        for server in servers:
-            if "id" in server:
-                return str(server["id"])
-
+        # Lấy server đầu tiên trong danh sách
+        if servers and "id" in servers[0]:
+            return str(servers[0]["id"])
     except Exception as e:
         print(f"[ERROR] Cannot fetch ID for '{provider}': {e}")
     return None
 
 def update_ids(content):
+    # pattern để tìm speed_test 'id' 'provider, CC'
     pattern = r"speed_test\s+'(\d*)'\s+'(.+?),\s*([A-Z]{2})'"
 
     def replacer(match):
