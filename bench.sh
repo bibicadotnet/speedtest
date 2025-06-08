@@ -75,18 +75,18 @@ speed_test() {
 
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '68864' 'San Jose, US'
-    speed_test '62493' 'Orange France, FR'
-    speed_test '28922' 'Amsterdam, NL'
-    speed_test '13538' 'Hong Kong, CN'
-    speed_test '7311' 'Singapore, SG'
-    speed_test '50467' 'Tokyo, JP'
-    speed_test '2515' 'FPT HCM, VN'
-    speed_test '2552' 'FPT HN, VN'
-    speed_test '17758' 'VNPT HCM, VN'
-    speed_test '17757' 'VNPT HN, VN'
-    speed_test '54812' 'Viettel HCM, VN'
-    speed_test '59915' 'Viettel DN, VN'
+    speed_test '🔍 Tìm server thay thế cho San Jose, US...' 'San Jose'
+    speed_test '🔍 Tìm server thay thế cho Orange France, FR...' 'Orange France'
+    speed_test '🔍 Tìm server thay thế cho Amsterdam, NL...' 'Amsterdam'
+    speed_test '🔍 Tìm server thay thế cho Hong Kong, CN...' 'Hong Kong'
+    speed_test '🔍 Tìm server thay thế cho Singapore, SG...' 'Singapore'
+    speed_test '🔍 Tìm server thay thế cho Tokyo, JP...' 'Tokyo'
+    speed_test '🔍 Tìm server thay thế cho FPT HCM, VN...' 'FPT HCM'
+    speed_test '🔍 Tìm server thay thế cho FPT HN, VN...' 'FPT HN'
+    speed_test '🔍 Tìm server thay thế cho VNPT HCM, VN...' 'VNPT HCM'
+    speed_test '🔍 Tìm server thay thế cho VNPT HN, VN...' 'VNPT HN'
+    speed_test '🔍 Tìm server thay thế cho Viettel HCM, VN...' 'Viettel HCM'
+    speed_test '🔍 Tìm server thay thế cho Viettel DN, VN...' 'Viettel DN'
 }
 
 io_test() {
