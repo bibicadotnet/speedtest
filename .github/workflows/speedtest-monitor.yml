@@ -11,260 +11,145 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      issues: write
-      pull-requests: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        
+      
     - name: Install Speedtest CLI
       run: |
-        # Download và cài đặt Speedtest CLI từ official source
         curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
-        sudo apt-get install speedtest-cli
-        
-        # Accept license (speedtest-cli command)
-        speedtest-cli --version > /dev/null 2>&1 || true
+        sudo apt-get install speedtest
         
     - name: Check and update server IDs
       run: |
-        # Tạo file backup
-        cp bench.sh bench.sh.backup
+        # Đọc trực tiếp từ bench.sh để lấy danh sách server ID hiện tại
+        echo "📊 Đọc danh sách server từ bench.sh..."
         
-        # Danh sách server cần check (format: "ID:Location:Country")  
-        declare -A SERVERS=(
-          ["68864"]="San Jose:US"
-          ["62493"]="Orange France:FR" 
-          ["28922"]="Amsterdam:NL"
-          ["13538"]="Hong Kong:CN"
-          ["7311"]="Singapore:SG"
-          ["50467"]="Tokyo:JP"
-          ["2515"]="FPT HCM:VN"
-          ["2552"]="FPT HN:VN"
-          ["17758"]="VNPT HCM:VN"
-          ["17757"]="VNPT HN:VN"
-          ["54812"]="Viettel HCM:VN"
-          ["59915"]="Viettel DN:VN"
-        )
+        # Extract các dòng speed_test có ID từ bench.sh
+        mapfile -t server_lines < <(grep "speed_test '[0-9]" bench.sh)
         
-        # Function để tìm server thay thế cùng location với mapping cụ thể
+        if [ ${#server_lines[@]} -eq 0 ]; then
+          echo "❌ Không tìm thấy server nào trong bench.sh"
+          exit 1
+        fi
+        
+        # Function tìm server thay thế dựa trên location
         find_replacement_server() {
           local location="$1"
-          local country="$2"
-          local current_id="$3"
+          local current_id="$2"
           
-          echo "🔍 Tìm server thay thế cho $location, $country..."
-          
-          # Mapping cụ thể cho từng location
-          local replacement_id=""
+          echo "🔍 Tìm server thay thế cho $location..."
           
           case "$location" in
-            "San Jose")
-              # Tìm server ở California, US
-              replacement_id=$(speedtest-cli --list | grep -i "california\|san jose\|san francisco\|palo alto" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')')
+            *"San Jose"*|*"US"*)
+              speedtest --servers | grep -i "san jose\|california\|united states" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Orange France")
-              # Tìm server ở France
-              replacement_id=$(speedtest --servers | grep -i "france\|paris\|lyon" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"France"*|*"FR"*)
+              speedtest --servers | grep -i "france\|paris" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Amsterdam")
-              # Tìm server ở Netherlands
-              replacement_id=$(speedtest --servers | grep -i "netherlands\|amsterdam\|holland" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Amsterdam"*|*"NL"*)
+              speedtest --servers | grep -i "amsterdam\|netherlands" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Hong Kong")
-              # Tìm server ở Hong Kong
-              replacement_id=$(speedtest --servers | grep -i "hong kong\|hk" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Hong Kong"*|*"CN"*)
+              speedtest --servers | grep -i "hong kong" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Singapore")
-              # Tìm server ở Singapore
-              replacement_id=$(speedtest --servers | grep -i "singapore\|sg" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Singapore"*|*"SG"*)
+              speedtest --servers | grep -i "singapore" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Tokyo")
-              # Tìm server ở Japan
-              replacement_id=$(speedtest --servers | grep -i "japan\|tokyo\|osaka" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Tokyo"*|*"JP"*)
+              speedtest --servers | grep -i "tokyo\|japan" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "FPT HCM")
-              # Tìm server FPT khác ở HCM hoặc VN
-              replacement_id=$(speedtest --servers | grep -i "fpt.*ho chi minh\|fpt.*hcm\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "fpt" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"FPT"*"HCM"*|*"FPT"*"VN"*)
+              speedtest --servers | grep -i "fpt.*ho chi minh\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "FPT HN")
-              # Tìm server FPT khác ở HN hoặc VN  
-              replacement_id=$(speedtest --servers | grep -i "fpt.*hanoi\|fpt.*ha noi\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "fpt" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"FPT"*"HN"*)
+              speedtest --servers | grep -i "fpt.*hanoi\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "VNPT HCM")
-              # Tìm server VNPT khác ở HCM hoặc VN
-              replacement_id=$(speedtest --servers | grep -i "vnpt.*ho chi minh\|vnpt.*hcm\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "vnpt" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"VNPT"*"HCM"*)
+              speedtest --servers | grep -i "vnpt.*ho chi minh\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "VNPT HN")
-              # Tìm server VNPT khác ở HN hoặc VN
-              replacement_id=$(speedtest --servers | grep -i "vnpt.*hanoi\|vnpt.*ha noi\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "vnpt" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"VNPT"*"HN"*)
+              speedtest --servers | grep -i "vnpt.*hanoi\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Viettel HCM")
-              # Tìm server Viettel khác ở HCM hoặc VN
-              replacement_id=$(speedtest --servers | grep -i "viettel.*ho chi minh\|viettel.*hcm\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "viettel" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Viettel"*"HCM"*)
+              speedtest --servers | grep -i "viettel.*ho chi minh\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
               ;;
-            "Viettel DN")
-              # Tìm server Viettel khác ở Da Nang hoặc VN
-              replacement_id=$(speedtest --servers | grep -i "viettel.*da nang\|viettel.*danang\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-              [[ -z "$replacement_id" ]] && replacement_id=$(speedtest --servers | grep -i "viettel" | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}')
+            *"Viettel"*"DN"*)
+              speedtest --servers | grep -i "viettel.*da nang\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              ;;
+            *)
+              # Fallback: tìm server bất kỳ ở Vietnam nếu có VN trong tên
+              if [[ "$location" == *"VN"* ]]; then
+                speedtest --servers | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              fi
               ;;
           esac
-          
-          # Nếu vẫn không tìm thấy, tìm server bất kì cùng quốc gia
-          if [[ -z "$replacement_id" ]]; then
-            case "$country" in
-              "US")
-                replacement_id=$(speedtest --servers | grep -i "united states\|usa" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "FR")  
-                replacement_id=$(speedtest --servers | grep -i "france" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "NL")
-                replacement_id=$(speedtest --servers | grep -i "netherlands" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "CN")
-                replacement_id=$(speedtest --servers | grep -i "hong kong\|china" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "SG")
-                replacement_id=$(speedtest --servers | grep -i "singapore" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "JP")
-                replacement_id=$(speedtest --servers | grep -i "japan" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-              "VN")
-                replacement_id=$(speedtest --servers | grep -i "vietnam\|viet nam" | grep -v "$current_id" | head -1 | awk '{print $1}')
-                ;;
-            esac
-          fi
-          
-          echo "$replacement_id"
         }
         
-        # Biến để track có thay đổi không
         CHANGED=false
-        REPORT=""
         
-        echo "📊 Bắt đầu kiểm tra server speedtest..." 
-        echo "======================================="
+        echo "📊 Kiểm tra ${#server_lines[@]} speedtest servers..."
+        echo "=================================="
         
-        for server_id in "${!SERVERS[@]}"; do
-          location_info="${SERVERS[$server_id]}"
-          location=$(echo "$location_info" | cut -d':' -f1)
-          country=$(echo "$location_info" | cut -d':' -f2)
+        # Kiểm tra từng server
+        for line in "${server_lines[@]}"; do
+          # Extract server ID và location từ dòng
+          # Format: speed_test '12345' 'Location Name'
+          server_id=$(echo "$line" | sed -n "s/.*speed_test '\([0-9]*\)'.*/\1/p")
+          location=$(echo "$line" | sed -n "s/.*speed_test '[0-9]*' '\([^']*\)'.*/\1/p")
           
-          echo "🧪 Kiểm tra Server ID: $server_id ($location, $country)"
+          if [[ -z "$server_id" || -z "$location" ]]; then
+            echo "⚠️ Không thể parse: $line"
+            continue
+          fi
           
-          # Test server
-          if timeout 30 speedtest-cli --server="$server_id" > /dev/null 2>&1; then
-            echo "✅ Server $server_id hoạt động bình thường"
-            REPORT+="\n✅ Server $server_id ($location, $country): OK"
+          echo "🧪 Kiểm tra Server $server_id ($location)"
+          
+          # Test server với timeout 30s
+          if timeout 30 speedtest --server-id="$server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+            echo "✅ Server $server_id OK"
           else
-            echo "❌ Server $server_id không phản hồi!"
-            REPORT+="\n❌ Server $server_id ($location, $country): FAILED"
+            echo "❌ Server $server_id FAILED"
             
             # Tìm server thay thế
-            new_server_id=$(find_replacement_server "$location" "$country" "$server_id")
+            new_server_id=$(find_replacement_server "$location" "$server_id")
             
             if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
               # Test server mới
-              if timeout 30 speedtest-cli --server="$new_server_id" > /dev/null 2>&1; then
-                echo "🔄 Tìm thấy server thay thế: $new_server_id"
-                REPORT+="\n🔄 Thay thế bằng Server $new_server_id"
+              echo "🔄 Test server thay thế $new_server_id..."
+              if timeout 30 speedtest --server-id="$new_server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+                echo "✅ Server $new_server_id OK - Thay thế $server_id"
                 
-                # Thay thế trong file bench.sh và cập nhật cả tên hiển thị
-                sed -i "s/speed_test '$server_id' '[^']*'/speed_test '$new_server_id' '$location'/g" bench.sh
-                sed -i "s/speed_test \"$server_id\" \"[^\"]*\"/speed_test \"$new_server_id\" \"$location\"/g" bench.sh
+                # Thay thế trực tiếp trong bench.sh
+                sed -i "s/speed_test '$server_id'/speed_test '$new_server_id'/g" bench.sh
                 
                 CHANGED=true
-                echo "✅ Đã cập nhật Server $server_id -> $new_server_id trong bench.sh"
+                echo "📝 Đã cập nhật bench.sh: $server_id -> $new_server_id"
               else
-                echo "⚠️  Server thay thế $new_server_id cũng không hoạt động"
-                REPORT+="\n⚠️  Server thay thế $new_server_id cũng failed"
+                echo "❌ Server thay thế $new_server_id cũng failed"
               fi
             else
-              echo "⚠️  Không tìm thấy server thay thế phù hợp"
-              REPORT+="\n⚠️  Không tìm thấy server thay thế"
+              echo "⚠️ Không tìm thấy server thay thế phù hợp cho $location"
             fi
           fi
           
           echo "---"
-          sleep 2
+          sleep 3
         done
         
-        echo "======================================="
-        echo "📋 BÁO CÁO TỔNG KẾT:"
-        echo -e "$REPORT"
-        
-        # Lưu report vào file
-        echo -e "# Speedtest Server Check Report - $(date)\n$REPORT" > speedtest-report.md
-        
-        # Set output cho step tiếp theo
+        echo "=================================="
         echo "CHANGED=$CHANGED" >> $GITHUB_ENV
-        echo "REPORT<<EOF" >> $GITHUB_ENV
-        echo -e "$REPORT" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
         
-    - name: Commit changes if any
+    - name: Commit và push thay đổi
       if: env.CHANGED == 'true'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # So sánh thay đổi
         echo "📝 Thay đổi trong bench.sh:"
-        git diff bench.sh || true
+        git diff bench.sh
         
-        git add bench.sh speedtest-report.md
-        git commit -m "🔄 Auto-update speedtest server IDs - $(date +'%Y-%m-%d %H:%M:%S')"
-        
-    - name: Push changes
-      if: env.CHANGED == 'true'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ github.ref }}
-        
-    - name: Create Issue on failures
-      if: contains(env.REPORT, 'FAILED') || contains(env.REPORT, '⚠️')
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const report = process.env.REPORT;
-          const title = `🚨 Speedtest Server Issues Detected - ${new Date().toISOString().split('T')[0]}`;
-          const body = `## 📊 Speedtest Server Check Report
-          
-          **Thời gian check:** ${new Date().toLocaleString('vi-VN')}
-          
-          ### 📋 Chi tiết:
-          ${report}
-          
-          ### 🔧 Hành động cần thiết:
-          - Kiểm tra các server bị lỗi
-          - Xem xét cập nhật thủ công nếu cần
-          - Theo dõi hiệu suất server mới
-          
-          ---
-          *Issue này được tạo tự động bởi GitHub Action*`;
-          
-          github.rest.issues.create({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            title: title,
-            body: body,
-            labels: ['bug', 'automated', 'speedtest']
-          });
-          
-    - name: Upload report artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: speedtest-report-${{ github.run_number }}
-        path: speedtest-report.md
-        retention-days: 30
+        git add bench.sh
+        git commit -m "🔄 Auto-update failed speedtest servers - $(date +'%Y-%m-%d %H:%M')"
+        git push
