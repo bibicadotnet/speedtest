@@ -34,6 +34,32 @@ jobs:
           exit 1
         fi
         
+        # Function test server với retry logic
+        test_server_with_retry() {
+          local server_id="$1"
+          local max_attempts=3
+          local timeout_duration=60
+          
+          for attempt in $(seq 1 $max_attempts); do
+            echo "🔄 Attempt $attempt/$max_attempts for server $server_id"
+            
+            # Test với timeout dài hơn và chỉ lấy ping test (nhanh hơn)
+            if timeout $timeout_duration speedtest-cli --server="$server_id" --no-download --no-upload > /dev/null 2>&1; then
+              echo "✅ Server $server_id responded successfully on attempt $attempt"
+              return 0
+            else
+              echo "⚠️ Server $server_id failed attempt $attempt"
+              if [ $attempt -lt $max_attempts ]; then
+                echo "⏳ Waiting 10 seconds before retry..."
+                sleep 10
+              fi
+            fi
+          done
+          
+          echo "❌ Server $server_id failed all $max_attempts attempts"
+          return 1
+        }
+        
         # Function tìm server thay thế dựa trên location
         find_replacement_server() {
           local location="$1"
@@ -43,45 +69,45 @@ jobs:
           
           case "$location" in
             *"San Jose"*|*"US"*)
-              new_id=$(speedtest-cli --list | grep -i "san jose\|california\|united states" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "san jose\|california\|united states" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"France"*|*"FR"*)
-              new_id=$(speedtest-cli --list | grep -i "france\|paris" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "france\|paris" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Amsterdam"*|*"NL"*)
-              new_id=$(speedtest-cli --list | grep -i "amsterdam\|netherlands" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "amsterdam\|netherlands" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Hong Kong"*|*"CN"*)
-              new_id=$(speedtest-cli --list | grep -i "hong kong" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "hong kong" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Singapore"*|*"SG"*)
-              new_id=$(speedtest-cli --list | grep -i "singapore" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "singapore" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Tokyo"*|*"JP"*)
-              new_id=$(speedtest-cli --list | grep -i "tokyo\|japan" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "tokyo\|japan" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"FPT"*"HCM"*|*"FPT"*"VN"*)
-              new_id=$(speedtest-cli --list | grep -i "fpt.*ho chi minh\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "fpt.*ho chi minh\|fpt.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"FPT"*"HN"*)
-              new_id=$(speedtest-cli --list | grep -i "fpt.*hanoi\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "fpt.*hanoi\|fpt.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"VNPT"*"HCM"*)
-              new_id=$(speedtest-cli --list | grep -i "vnpt.*ho chi minh\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "vnpt.*ho chi minh\|vnpt.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"VNPT"*"HN"*)
-              new_id=$(speedtest-cli --list | grep -i "vnpt.*hanoi\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "vnpt.*hanoi\|vnpt.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Viettel"*"HCM"*)
-              new_id=$(speedtest-cli --list | grep -i "viettel.*ho chi minh\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "viettel.*ho chi minh\|viettel.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *"Viettel"*"DN"*)
-              new_id=$(speedtest-cli --list | grep -i "viettel.*da nang\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+              new_id=$(speedtest-cli --list | grep -i "viettel.*da nang\|viettel.*vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               ;;
             *)
               # Fallback: tìm server bất kỳ ở Vietnam nếu có VN trong tên
               if [[ "$location" == *"VN"* ]]; then
-                new_id=$(speedtest-cli --list | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
+                new_id=$(speedtest-cli --list | grep -i "vietnam" | grep -v "$current_id" | head -3 | tail -1 | awk '{print $1}' | tr -d ')' | tr -d ' ')
               fi
               ;;
           esac
@@ -93,6 +119,7 @@ jobs:
         }
         
         CHANGED=false
+        FAILED_SERVERS=()
         
         echo "📊 Kiểm tra ${#server_lines[@]} speedtest servers..."
         echo "=================================="
@@ -111,20 +138,21 @@ jobs:
           
           echo "🧪 Kiểm tra Server $server_id ($location)"
           
-          # Test server với timeout 30s
-          if timeout 30 speedtest-cli --server="$server_id" > /dev/null 2>&1; then
+          # Test server với retry logic
+          if test_server_with_retry "$server_id"; then
             echo "✅ Server $server_id OK"
           else
-            echo "❌ Server $server_id FAILED"
+            echo "❌ Server $server_id FAILED sau tất cả attempts"
+            FAILED_SERVERS+=("$server_id:$location")
             
             echo "🔍 Tìm server thay thế cho $location..."
             # Tìm server thay thế
             new_server_id=$(find_replacement_server "$location" "$server_id")
             
             if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
-              # Test server mới
+              # Test server mới với retry
               echo "🔄 Test server thay thế $new_server_id..."
-              if timeout 30 speedtest-cli --server="$new_server_id" > /dev/null 2>&1; then
+              if test_server_with_retry "$new_server_id"; then
                 echo "✅ Server $new_server_id OK - Thay thế $server_id"
                 
                 # Thay thế trực tiếp trong bench.sh (escape đặc biệt characters)
@@ -141,10 +169,27 @@ jobs:
           fi
           
           echo "---"
-          sleep 3
+          # Tăng delay giữa các test để tránh rate limiting
+          sleep 5
         done
         
         echo "=================================="
+        echo "📊 Tổng kết:"
+        echo "- Số server failed: ${#FAILED_SERVERS[@]}"
+        
+        if [ ${#FAILED_SERVERS[@]} -gt 0 ]; then
+          echo "- Danh sách server failed:"
+          for failed in "${FAILED_SERVERS[@]}"; do
+            echo "  * $failed"
+          done
+        fi
+        
+        # Chỉ commit nếu thực sự có thay đổi và số server failed không quá nhiều
+        if [ ${#FAILED_SERVERS[@]} -gt 8 ]; then
+          echo "⚠️ Quá nhiều server failed (${#FAILED_SERVERS[@]}), có thể là network issue. Không thực hiện thay đổi."
+          CHANGED=false
+        fi
+        
         echo "CHANGED=$CHANGED" >> $GITHUB_ENV
         
     - name: Commit và push thay đổi
