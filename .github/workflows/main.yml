@@ -1,36 +1,27 @@
-name: Update Speedtest IDs
+name: Auto Update Speedtest IDs
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Chạy mỗi ngày lúc 00:00 UTC
+    - cron: '0 * * * *'  # every 1 hour
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  update-speedtest:
+  update:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
-
-      - name: Install dependencies
-        run: pip install requests lxml
-
-      - name: Run speedtest checker
-        run: python scripts/check_speedtest.py
-
-      - name: Commit and push changes
+      - run: pip install requests
+      - run: python check_speedtest.py
+      - name: Commit and Push if Changed
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "Speedtest Bot"
+          git config user.email "bot@speedtest.local"
           git add bench.sh
-          git commit -m "Update Speedtest IDs" || echo "No changes to commit"
+          git commit -m "🔄 Auto update Speedtest IDs" || echo "No changes"
           git push
