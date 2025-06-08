@@ -1,92 +1,47 @@
-import requests
-import xml.etree.ElementTree as ET
 import re
+import requests
 
 BENCH_FILE = "bench.sh"
-SERVER_LIST_URL = "https://www.speedtest.net/speedtest-servers-static.php"
+API_BASE = "https://www.speedtest.net/api/js/servers"
+TIMEOUT = 10
 
-def is_host_alive(host):
+def fetch_first_id(provider):
     try:
-        base_host = host.split(":")[0]
-        url = f"http://{base_host}/speedtest/upload.php"
-        r = requests.head(url, timeout=5)
-        return r.status_code < 500
-    except Exception:
-        return False
-
-def fetch_speedtest_servers():
-    print("Fetching server list...")
-    response = requests.get(SERVER_LIST_URL)
-    response.raise_for_status()
-    servers = []
-    root = ET.fromstring(response.content)
-    for server in root.iter('server'):
-        servers.append({
-            'id': server.attrib['id'],
-            'host': server.attrib['host'],
-            'name': server.attrib['name'],
-            'country': server.attrib['country'],
-            'sponsor': server.attrib['sponsor'],
-        })
-    return servers
-
-def extract_speed_entries(content):
-    return re.findall(r"speed_test\s+'(\d*)'\s+'(.+?)'", content)
-
-def find_server_by_id(servers, id_):
-    return next((s for s in servers if s['id'] == id_), None)
-
-def find_replacement(servers, original_location):
-    city = original_location.split(',')[0].strip().lower()
-    for s in servers:
-        if city in s['name'].lower() and is_host_alive(s['host']):
-            return s
+        resp = requests.get(API_BASE, params={
+            "engine": "js",
+            "https_functional": "true",
+            "limit": "1000",
+            "search": provider
+        }, timeout=TIMEOUT)
+        servers = resp.json()
+        if servers:
+            return servers[0]["id"]
+    except:
+        pass
     return None
 
-def build_speed_block(entries, servers):
-    updated_lines = []
-    for id_, location in entries:
-        if not id_:  # dòng default speed_test '' 'Speedtest.net'
-            updated_lines.append(f"    speed_test '' '{location}'")
-            continue
+with open(BENCH_FILE, "r", encoding="utf-8") as f:
+    content = f.read()
 
-        server = find_server_by_id(servers, id_)
-        if not server:
-            print(f"ID {id_} ({location}) is INVALID. Finding replacement...")
-            replacement = find_replacement(servers, location)
-            if replacement:
-                new_loc = f"{replacement['name']}, {replacement['country']}"
-                updated_lines.append(f"    speed_test '{replacement['id']}' '{new_loc}'  # replaced (invalid ID)")
-            else:
-                updated_lines.append(f"    # speed_test '{id_}' '{location}'  # invalid ID, no replacement found")
-            continue
-
-        if is_host_alive(server['host']):
-            updated_lines.append(f"    speed_test '{id_}' '{location}'")
+def replace_ids(text):
+    def repl(match):
+        old_id, provider, country = match.groups()
+        new_id = fetch_first_id(provider)
+        if new_id and new_id != old_id:
+            print(f"[Update] {provider}, {country}: {old_id} → {new_id}")
+            return f"speed_test '{new_id}' '{provider}, {country}'"
         else:
-            print(f"ID {id_} ({location}) is DOWN. Finding replacement...")
-            replacement = find_replacement(servers, location)
-            if replacement:
-                new_loc = f"{replacement['name']}, {replacement['country']}"
-                updated_lines.append(f"    speed_test '{replacement['id']}' '{new_loc}'  # replaced")
-            else:
-                updated_lines.append(f"    # speed_test '{id_}' '{location}'  # down, no replacement found")
-    return "speed() {\n" + "\n".join(updated_lines) + "\n}"
+            return match.group(0)
 
-def main():
-    with open(BENCH_FILE, 'r', encoding='utf-8') as f:
-        content = f.read()
+    return re.sub(
+        r"speed_test\s+'(\d*)'\s+'([^,]+),\s*([A-Z]{2})'", 
+        repl, 
+        text
+    )
 
-    servers = fetch_speedtest_servers()
-    entries = extract_speed_entries(content)
-    new_speed_func = build_speed_block(entries, servers)
+new_content = replace_ids(content)
 
-    updated_content = re.sub(r"speed\(\) \{.*?\}", new_speed_func, content, flags=re.DOTALL)
+with open(BENCH_FILE, "w", encoding="utf-8") as f:
+    f.write(new_content)
 
-    with open(BENCH_FILE, 'w', encoding='utf-8') as f:
-        f.write(updated_content)
-
-    print("bench.sh updated successfully.")
-
-if __name__ == "__main__":
-    main()
+print("bench.sh updated.")
