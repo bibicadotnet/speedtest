@@ -5,15 +5,18 @@ on:
     - cron: '0 0 * * *'  # Chạy hàng ngày lúc 00:00 UTC
   workflow_dispatch:     # Cho phép chạy thủ công
 
+permissions:
+  contents: write  # Cấp quyền write cho workflow
+
 jobs:
   update-servers:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
@@ -23,8 +26,10 @@ jobs:
           pip install requests beautifulsoup4
 
       - name: Run server ID updater
+        run: python update_speedtest_servers.py
+
+      - name: Commit and push changes
         run: |
-          python update_speedtest_servers.py
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add bench.sh
