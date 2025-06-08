@@ -23,5 +23,5 @@ jobs:
           git config user.name "Speedtest Bot"
           git config user.email "bot@speedtest.local"
           git add bench.sh
-          git commit -m "🔄 Auto update Speedtest IDs" || echo "No changes"
+          git commit -m "Auto update Speedtest ID" || echo "No changes"
           git push
