@@ -76,14 +76,14 @@ speed_test() {
 speed() {
     speed_test '' 'Speedtest.net'
     speed_test '60075' 'Los Angeles, US'
-    speed_test '53171' 'Paris, FR'
-    speed_test '28922' 'Berlin, DE'
+    speed_test '69131' 'Paris, FR'
+    speed_test '59474' 'Berlin, DE'
     speed_test '13538' 'Hong Kong, HK'
     speed_test '31293' 'Singapore, SG'
     speed_test '48463' 'Tokyo, JP'
-    speed_test '2515' 'FPT Telecom, VN'
-    speed_test '2222222' 'VNPT-NET, VN'
-    speed_test '59915' 'Viettel Network, VN'
+    speed_test '67826' 'FPT Telecom, VN'
+    speed_test '17757' 'VNPT-NET, VN'
+    speed_test '9903' 'Viettel Network, VN'
 }
 
 io_test() {
