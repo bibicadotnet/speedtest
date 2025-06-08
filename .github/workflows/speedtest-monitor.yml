@@ -19,7 +19,7 @@ jobs:
     - name: Install Speedtest CLI
       run: |
         curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
-        sudo apt-get install speedtest
+        sudo apt-get install speedtest-cli
         
     - name: Check and update server IDs
       run: |
@@ -43,45 +43,45 @@ jobs:
           
           case "$location" in
             *"San Jose"*|*"US"*)
-              speedtest --servers | grep -i "san jose\|california\|united states" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "san jose\|california\|united states" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"France"*|*"FR"*)
-              speedtest --servers | grep -i "france\|paris" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "france\|paris" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Amsterdam"*|*"NL"*)
-              speedtest --servers | grep -i "amsterdam\|netherlands" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "amsterdam\|netherlands" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Hong Kong"*|*"CN"*)
-              speedtest --servers | grep -i "hong kong" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "hong kong" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Singapore"*|*"SG"*)
-              speedtest --servers | grep -i "singapore" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "singapore" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Tokyo"*|*"JP"*)
-              speedtest --servers | grep -i "tokyo\|japan" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "tokyo\|japan" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"FPT"*"HCM"*|*"FPT"*"VN"*)
-              speedtest --servers | grep -i "fpt.*ho chi minh\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "fpt.*ho chi minh\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"FPT"*"HN"*)
-              speedtest --servers | grep -i "fpt.*hanoi\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "fpt.*hanoi\|fpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"VNPT"*"HCM"*)
-              speedtest --servers | grep -i "vnpt.*ho chi minh\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "vnpt.*ho chi minh\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"VNPT"*"HN"*)
-              speedtest --servers | grep -i "vnpt.*hanoi\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "vnpt.*hanoi\|vnpt.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Viettel"*"HCM"*)
-              speedtest --servers | grep -i "viettel.*ho chi minh\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "viettel.*ho chi minh\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *"Viettel"*"DN"*)
-              speedtest --servers | grep -i "viettel.*da nang\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+              speedtest-cli --list | grep -i "viettel.*da nang\|viettel.*vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               ;;
             *)
               # Fallback: tìm server bất kỳ ở Vietnam nếu có VN trong tên
               if [[ "$location" == *"VN"* ]]; then
-                speedtest --servers | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}'
+                speedtest-cli --list | grep -i "vietnam" | grep -v "$current_id" | head -1 | awk '{print $1}' | tr -d ')'
               fi
               ;;
           esac
@@ -107,7 +107,7 @@ jobs:
           echo "🧪 Kiểm tra Server $server_id ($location)"
           
           # Test server với timeout 30s
-          if timeout 30 speedtest --server-id="$server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+          if timeout 30 speedtest-cli --server="$server_id" > /dev/null 2>&1; then
             echo "✅ Server $server_id OK"
           else
             echo "❌ Server $server_id FAILED"
@@ -118,7 +118,7 @@ jobs:
             if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
               # Test server mới
               echo "🔄 Test server thay thế $new_server_id..."
-              if timeout 30 speedtest --server-id="$new_server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+              if timeout 30 speedtest-cli --server="$new_server_id" > /dev/null 2>&1; then
                 echo "✅ Server $new_server_id OK - Thay thế $server_id"
                 
                 # Thay thế trực tiếp trong bench.sh
