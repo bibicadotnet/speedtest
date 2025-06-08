@@ -7,7 +7,7 @@ API_URL = "https://www.speedtest.net/api/js/servers"
 # Danh sách các sponsor uy tín theo từng quốc gia
 BIG_SPONSORS_BY_COUNTRY = {
     "US": {
-        "Comcast", "AT&T", "Verizon", "Frontier", "Spectrum "
+        "Comcast", "AT&T", "Verizon", "Frontier", "Spectrum"
     },
     "FR": {
         "ORANGE FRANCE", "Scaleway", "Sewan"
@@ -49,9 +49,11 @@ def fetch_first_id(provider, country_code):
         for server in servers:
             sponsor = server.get("sponsor", "").strip()
             if sponsor in sponsors_to_check:
+                print(f"  → Found sponsor '{sponsor}' in BIG_SPONSORS, using ID {server.get('id')}")
                 return str(server.get("id"))
 
         # Nếu không tìm thấy, trả về ID server đầu tiên
+        print(f"  → No BIG_SPONSORS found, using first server ID {servers[0].get('id')}")
         return str(servers[0].get("id"))
     except Exception as e:
         print(f"[ERROR] Cannot fetch ID for '{provider}': {e}")
@@ -64,6 +66,7 @@ def update_ids(content):
         old_id, provider, country = match.groups()
         provider_clean = provider.strip()
 
+        print(f"Fetching ID for {provider_clean}, {country}...")
         new_id = fetch_first_id(provider_clean, country)
 
         if new_id and new_id != old_id:
