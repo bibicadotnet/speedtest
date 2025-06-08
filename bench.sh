@@ -76,7 +76,7 @@ speed_test() {
 speed() {
     speed_test '' 'Speedtest.net'
     speed_test '60075' 'San Jose, Costa Rica'
-    speed_test '62028' 'Poitiers, France'
+    speed_test '53171' 'Poitiers, France'
     speed_test '28922' 'Amsterdam, Netherlands'
     speed_test '13538' 'Hong Kong, Hong Kong'
     speed_test '31293' 'Singapore, Singapore'
