@@ -1,16 +1,17 @@
-name: Update Speedtest Servers
+name: Update Speedtest IDs
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at 00:00 UTC
+    - cron: '0 0 * * *'  # Chạy mỗi ngày lúc 00:00 UTC
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  update-servers:
+  update-speedtest:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -18,21 +19,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.x'
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install speedtest-cli==2.1.3 requests beautifulsoup4
+        run: pip install requests lxml
 
-      - name: Run server updater
-        timeout-minutes: 30
-        run: python update_speedtest_servers.py
+      - name: Run speedtest checker
+        run: python scripts/check_speedtest.py
 
       - name: Commit and push changes
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add bench.sh
-          git commit -m "Update Speedtest server IDs [skip ci]" || echo "No changes to commit"
+          git commit -m "Update Speedtest IDs" || echo "No changes to commit"
           git push
