@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: '3.x'
       - run: pip install requests
-      - run: python check_speedtest.py
+      - run: python scripts/check_speedtest.py
       - name: Commit and Push if Changed
         run: |
           git config user.name "Speedtest Bot"
