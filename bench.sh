@@ -75,12 +75,12 @@ speed_test() {
 
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '11111' 'San Jose, US'
-    speed_test '62493' 'Orange France, FR'
-    speed_test '28922' 'Amsterdam, NL'
-    speed_test '13538' 'Hong Kong, CN'
-    speed_test '7311' 'Singapore, SG'
-    speed_test '50467' 'Tokyo, JP'
+    speed_test '60075' 'San Jose, Costa Rica'
+    speed_test '62028' 'Poitiers, France'
+    speed_test '28922' 'Amsterdam, Netherlands'
+    speed_test '13538' 'Hong Kong, Hong Kong'
+    speed_test '31293' 'Singapore, Singapore'
+    speed_test '48463' 'Tokyo, Japan'
     speed_test '2515' 'FPT HCM, VN'
     speed_test '2552' 'FPT HN, VN'
     speed_test '2222222' 'VNPT HCM, VN'
