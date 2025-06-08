@@ -4,7 +4,35 @@ import requests
 BENCH_FILE = "bench.sh"
 API_URL = "https://www.speedtest.net/api/js/servers"
 
-def fetch_first_id(provider):
+BIG_SPONSORS_BY_COUNTRY = {
+    "US": {
+        "Comcast", "AT&T", "Verizon", "CenturyLink", "Charter", "Cox Communications",
+        "Frontier", "Spectrum", "Nitel", "Boost Mobile", "GigabitNow", "Starry",
+        "Hivelocity", "ReliableSite", "WiLine Networks", "PerfectIP.net", "CTCSCI TECH LTD",
+        "Xfernet", "Aberythmic LLC", "AtlasDigital", "Race Communications", "ServerForge LLC",
+        "EdgeUno", "GeoLinks", "KamaTera", "Hotwire Fision"
+    },
+    "FR": {
+        "Orange", "SFR", "Bouygues Telecom", "Free", "OVH", "Numericable"
+    },
+    "DE": {
+        "Deutsche Telekom", "Vodafone", "1&1", "Hetzner", "Unitymedia", "Telekom Deutschland"
+    },
+    "HK": {
+        "HKT", "PCCW", "CMI", "Hong Kong Broadband Network", "Netvigator"
+    },
+    "SG": {
+        "Singtel", "StarHub", "M1", "MyRepublic", "ViewQwest"
+    },
+    "JP": {
+        "NTT", "KDDI", "SoftBank", "Rakuten", "IIJ", "So-net"
+    },
+    "VN": {
+        "FPT Telecom", "VNPT-NET", "Viettel", "CMC Telecom", "VinaPhone", "MobiFone"
+    }
+}
+
+def fetch_best_id(provider):
     try:
         response = requests.get(API_URL, params={
             "engine": "js",
@@ -14,22 +42,28 @@ def fetch_first_id(provider):
         }, timeout=10)
         response.raise_for_status()
         servers = response.json()
-        
-        if servers and "id" in servers[0]:
+
+        # Tìm server đầu tiên trong BIG_SPONSORS
+        for server in servers:
+            sponsor = server.get("sponsor", "").strip()
+            if sponsor in BIG_SPONSORS:
+                return str(server["id"])
+
+        # Nếu không có server uy tín thì lấy server đầu tiên
+        if servers:
             return str(servers[0]["id"])
     except Exception as e:
         print(f"[ERROR] Cannot fetch ID for '{provider}': {e}")
     return None
 
 def update_ids(content):
-    # pattern để tìm speed_test 'id' 'provider, CC'
     pattern = r"speed_test\s+'(\d*)'\s+'(.+?),\s*([A-Z]{2})'"
 
     def replacer(match):
         old_id, provider, country = match.groups()
         provider_clean = provider.strip()
 
-        new_id = fetch_first_id(provider_clean)
+        new_id = fetch_best_id(provider_clean)
 
         if new_id and new_id != old_id:
             print(f"[Updated] {provider_clean}, {country}: {old_id} → {new_id}")
@@ -50,7 +84,7 @@ def main():
         with open(BENCH_FILE, "w", encoding="utf-8") as f:
             f.write(updated_content)
 
-        print("bench.sh updated successfully.")
+        print("✅ bench.sh updated successfully.")
     except FileNotFoundError:
         print(f"[ERROR] {BENCH_FILE} not found.")
     except Exception as e:
