@@ -20,7 +20,7 @@ jobs:
       run: |
         # Cài đặt speedtest-cli từ pip thay vì apt (version mới hơn)
         sudo apt-get update
-        sudo apt-get install -y python3-pip curl jq
+        sudo apt-get install -y python3-pip curl jq perl
         pip3 install speedtest-cli
         
         # Thêm pip bin vào PATH
@@ -157,6 +157,7 @@ jobs:
             echo "Testing candidate server $candidate_id..."
             if check_server_exists "$candidate_id"; then
               echo "SUCCESS: Found working replacement: $candidate_id"
+              # Return chỉ số ID, không có text khác
               echo "$candidate_id"
               return 0
             fi
@@ -196,25 +197,33 @@ jobs:
             FAILED_SERVERS+=("$server_id:$location")
             
             # Tìm server thay thế
+            echo "Tim server thay the cho $location..."
             new_server_id=$(find_replacement_server "$location" "$server_id")
             
-            if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
+            # Clean new_server_id - chỉ lấy số
+            new_server_id=$(echo "$new_server_id" | grep -o '^[0-9]*' | head -1)
+            
+            if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" && "$new_server_id" =~ ^[0-9]+$ ]]; then
               echo "SUCCESS: Tim thay server thay the $new_server_id cho $location"
               
-              # Thay thế trong bench.sh - escape ký tự đặc biệt
-              # Sử dụng sed với delimiter khác để tránh conflict
-              sed -i "s|speed_test '$server_id'|speed_test '$new_server_id'|g" bench.sh
+              # Backup bench.sh trước khi thay đổi
+              cp bench.sh bench.sh.backup
+              
+              # Thay thế trong bench.sh sử dụng perl thay vì sed để handle tốt hơn
+              perl -i -pe "s/speed_test '$server_id'/speed_test '$new_server_id'/g" bench.sh
               
               # Verify thay đổi thành công
-              if grep -q "speed_test '$new_server_id'" bench.sh; then
+              if grep -q "speed_test '$new_server_id'" bench.sh && ! grep -q "speed_test '$server_id'" bench.sh; then
                 CHANGED=true
                 REPLACED_SERVERS+=("$server_id -> $new_server_id ($location)")
                 echo "UPDATE: Da cap nhat bench.sh: $server_id -> $new_server_id"
+                rm -f bench.sh.backup
               else
-                echo "WARNING: Khong the cap nhat bench.sh cho server $server_id"
+                echo "ERROR: Khong the cap nhat bench.sh, rollback..."
+                mv bench.sh.backup bench.sh
               fi
             else
-              echo "WARNING: Khong tim thay server thay the cho $location"
+              echo "WARNING: Khong tim thay server thay the hop le cho $location"
             fi
           fi
           
