@@ -1,0 +1,200 @@
+name: Speedtest Server Monitor
+
+on:
+  schedule:
+    # Chạy hàng ngày lúc 2:00 UTC (9:00 AM GMT+7)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Cho phép chạy thủ công
+
+jobs:
+  check-speedtest-servers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Install Speedtest CLI
+      run: |
+        # Download và cài đặt Speedtest CLI
+        curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
+        sudo apt-get install speedtest
+        
+        # Accept license
+        speedtest --accept-license --accept-gdpr > /dev/null 2>&1 || true
+        
+    - name: Check and update server IDs
+      run: |
+        # Tạo file backup
+        cp bench.sh bench.sh.backup
+        
+        # Danh sách server cần check (format: "ID:Location:Country")  
+        declare -A SERVERS=(
+          ["68864"]="San Jose:US"
+          ["62493"]="Orange France:FR" 
+          ["28922"]="Amsterdam:NL"
+          ["13538"]="Hong Kong:CN"
+          ["7311"]="Singapore:SG"
+          ["50467"]="Tokyo:JP"
+          ["2515"]="FPT HCM:VN"
+          ["2552"]="FPT HN:VN"
+          ["17758"]="VNPT HCM:VN"
+          ["17757"]="VNPT HN:VN"
+          ["54812"]="Viettel HCM:VN"
+          ["59915"]="Viettel DN:VN"
+        )
+        
+        # Function để tìm server thay thế cùng location
+        find_replacement_server() {
+          local location="$1"
+          local country="$2"
+          local current_id="$3"
+          
+          echo "🔍 Tìm server thay thế cho $location, $country..."
+          
+          # Lấy danh sách server theo country
+          local servers_list
+          if [[ "$country" == "VN" ]]; then
+            servers_list=$(speedtest --servers | grep -i "vietnam\|viet nam" | head -10)
+          else
+            servers_list=$(speedtest --servers | grep -i "$country" | head -10)
+          fi
+          
+          # Tìm server cùng thành phố/khu vực
+          local city=$(echo "$location" | cut -d' ' -f1)
+          local replacement_id=$(echo "$servers_list" | grep -i "$city" | grep -v "$current_id" | head -1 | awk '{print $1}')
+          
+          if [[ -z "$replacement_id" ]]; then
+            # Nếu không tìm thấy cùng thành phố, lấy server khác cùng country
+            replacement_id=$(echo "$servers_list" | grep -v "$current_id" | head -1 | awk '{print $1}')
+          fi
+          
+          echo "$replacement_id"
+        }
+        
+        # Biến để track có thay đổi không
+        CHANGED=false
+        REPORT=""
+        
+        echo "📊 Bắt đầu kiểm tra server speedtest..." 
+        echo "======================================="
+        
+        for server_id in "${!SERVERS[@]}"; do
+          location_info="${SERVERS[$server_id]}"
+          location=$(echo "$location_info" | cut -d':' -f1)
+          country=$(echo "$location_info" | cut -d':' -f2)
+          
+          echo "🧪 Kiểm tra Server ID: $server_id ($location, $country)"
+          
+          # Test server
+          if timeout 30 speedtest --server-id="$server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+            echo "✅ Server $server_id hoạt động bình thường"
+            REPORT+="\n✅ Server $server_id ($location, $country): OK"
+          else
+            echo "❌ Server $server_id không phản hồi!"
+            REPORT+="\n❌ Server $server_id ($location, $country): FAILED"
+            
+            # Tìm server thay thế
+            new_server_id=$(find_replacement_server "$location" "$country" "$server_id")
+            
+            if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
+              # Test server mới
+              if timeout 30 speedtest --server-id="$new_server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
+                echo "🔄 Tìm thấy server thay thế: $new_server_id"
+                REPORT+="\n🔄 Thay thế bằng Server $new_server_id"
+                
+                # Thay thế trong file bench.sh
+                sed -i "s/speed_test '$server_id'/speed_test '$new_server_id'/g" bench.sh
+                sed -i "s/speed_test \"$server_id\"/speed_test \"$new_server_id\"/g" bench.sh
+                
+                CHANGED=true
+                echo "✅ Đã cập nhật Server $server_id -> $new_server_id trong bench.sh"
+              else
+                echo "⚠️  Server thay thế $new_server_id cũng không hoạt động"
+                REPORT+="\n⚠️  Server thay thế $new_server_id cũng failed"
+              fi
+            else
+              echo "⚠️  Không tìm thấy server thay thế phù hợp"
+              REPORT+="\n⚠️  Không tìm thấy server thay thế"
+            fi
+          fi
+          
+          echo "---"
+          sleep 2
+        done
+        
+        echo "======================================="
+        echo "📋 BÁO CÁO TỔNG KẾT:"
+        echo -e "$REPORT"
+        
+        # Lưu report vào file
+        echo -e "# Speedtest Server Check Report - $(date)\n$REPORT" > speedtest-report.md
+        
+        # Set output cho step tiếp theo
+        echo "CHANGED=$CHANGED" >> $GITHUB_ENV
+        echo "REPORT<<EOF" >> $GITHUB_ENV
+        echo -e "$REPORT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+        
+    - name: Commit changes if any
+      if: env.CHANGED == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # So sánh thay đổi
+        echo "📝 Thay đổi trong bench.sh:"
+        git diff bench.sh || true
+        
+        git add bench.sh speedtest-report.md
+        git commit -m "🔄 Auto-update speedtest server IDs - $(date +'%Y-%m-%d %H:%M:%S')"
+        
+    - name: Push changes
+      if: env.CHANGED == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
+        
+    - name: Create Issue on failures
+      if: contains(env.REPORT, 'FAILED') || contains(env.REPORT, '⚠️')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const report = process.env.REPORT;
+          const title = `🚨 Speedtest Server Issues Detected - ${new Date().toISOString().split('T')[0]}`;
+          const body = `## 📊 Speedtest Server Check Report
+          
+          **Thời gian check:** ${new Date().toLocaleString('vi-VN')}
+          
+          ### 📋 Chi tiết:
+          ${report}
+          
+          ### 🔧 Hành động cần thiết:
+          - Kiểm tra các server bị lỗi
+          - Xem xét cập nhật thủ công nếu cần
+          - Theo dõi hiệu suất server mới
+          
+          ---
+          *Issue này được tạo tự động bởi GitHub Action*`;
+          
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['bug', 'automated', 'speedtest']
+          });
+          
+    - name: Upload report artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: speedtest-report-${{ github.run_number }}
+        path: speedtest-report.md
+        retention-days: 30
