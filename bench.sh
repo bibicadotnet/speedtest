@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# Enhanced Bench Script with Auto Server Detection
-# Based on Teddysun's bench.sh with smart server selection
-# Auto-detects working speedtest servers and updates configuration
+# Description: A Bench Script by Teddysun
 #
-
+# Copyright (C) 2015 - 2025 Teddysun <i@teddysun.com>
+# Thanks: LookBack <admin@dwhd.org>
+# URL: https://teddysun.com/444.html
+# https://github.com/teddysun/across/blob/master/bench.sh
+#
 trap _exit INT QUIT TERM
 
 _red() {
@@ -39,264 +41,10 @@ _exists() {
 _exit() {
     _red "\nThe script has been terminated. Cleaning up files...\n"
     # clean up
-    rm -fr speedtest.tgz speedtest-cli benchtest_* server_list.json working_servers.conf
+    rm -fr speedtest.tgz speedtest-cli benchtest_*
     exit 1
 }
 
-# Configuration file to store working server IDs
-CONFIG_FILE="$HOME/.speedtest_servers.conf"
-BACKUP_CONFIG_FILE="./working_servers.conf"
-
-# Default server configurations with multiple fallback options
-declare -A FALLBACK_SERVERS=(
-    ["us"]="68864 13152 11093 23856 54321 16847 18531"           # US: San Jose, Seattle, Dallas, LA, NY, Chicago, Denver
-    ["eu"]="24215 21541 13704 28922 50467 23844 21569"          # EU: Germany (Frankfurt, Munich), Netherlands, etc
-    ["sg"]="7311 13538 45168 39832 52469"                       # Singapore: Multiple providers
-    ["jp"]="50467 6087 15047 21569 24333"                       # Japan: Tokyo, Osaka, Kyoto
-    ["vn_fpt"]="2515 2552 23844 54123"                          # FPT: HCM, HN, DN, CT
-    ["vn_vnpt"]="17758 17757 54123 23957"                       # VNPT: HCM, HN, DN, CT
-    ["vn_viettel"]="54812 59915 23844 52469"                    # Viettel: HCM, DN, HN, CT
-)
-
-# Initialize default working servers
-init_default_servers() {
-    cat > "$BACKUP_CONFIG_FILE" << 'EOF'
-# Working Speedtest Server Configuration
-# Format: region=server_id,server_name
-# Auto-generated and updated by script
-
-default=,Speedtest.net Global
-us=68864,San Jose US
-eu=24215,Frankfurt DE
-sg=7311,Singapore SG
-jp=50467,Tokyo JP
-vn_fpt=2515,FPT HCM VN
-vn_vnpt=17758,VNPT HCM VN
-vn_viettel=54812,Viettel HCM VN
-EOF
-    
-    # Copy to home directory if doesn't exist
-    [ ! -f "$CONFIG_FILE" ] && cp "$BACKUP_CONFIG_FILE" "$CONFIG_FILE"
-}
-
-# Get list of available servers
-get_server_list() {
-    _yellow "Scanning available speedtest servers...\n"
-    
-    # Get server list in JSON format
-    if ./speedtest-cli/speedtest --servers --format=json > server_list.json 2>/dev/null; then
-        _green "Server list retrieved successfully.\n"
-        return 0
-    else
-        _red "Failed to retrieve server list.\n"
-        return 1
-    fi
-}
-
-# Find working servers for each region
-find_working_servers() {
-    local region="$1"
-    local server_ids="${FALLBACK_SERVERS[$region]}"
-    local working_server=""
-    local working_name=""
-    
-    _yellow "Testing $region servers: $server_ids\n"
-    
-    for server_id in $server_ids; do
-        _blue "Testing server $server_id..."
-        
-        # Quick test with timeout
-        if timeout 15 ./speedtest-cli/speedtest --server-id="$server_id" --accept-license --accept-gdpr > /dev/null 2>&1; then
-            # Get server name from JSON if available
-            if [ -f server_list.json ]; then
-                working_name=$(grep -A 10 -B 10 "\"id\": $server_id" server_list.json | grep -o '"name": "[^"]*"' | cut -d'"' -f4 | head -1)
-                if [ -z "$working_name" ]; then
-                    working_name=$(grep -A 10 -B 10 "\"id\": $server_id" server_list.json | grep -o '"location": "[^"]*"' | cut -d'"' -f4 | head -1)
-                fi
-            fi
-            
-            [ -z "$working_name" ] && working_name="Server $server_id"
-            working_server="$server_id"
-            
-            _green " ✓ Working\n"
-            break
-        else
-            _red " ✗ Failed\n"
-        fi
-    done
-    
-    if [ -n "$working_server" ]; then
-        echo "$region=$working_server,$working_name"
-        return 0
-    else
-        _red "No working servers found for $region\n"
-        return 1
-    fi
-}
-
-# Update server configuration
-update_server_config() {
-    _yellow "Updating server configuration...\n"
-    
-    # Create new config
-    cat > "$BACKUP_CONFIG_FILE" << 'EOF'
-# Working Speedtest Server Configuration
-# Format: region=server_id,server_name
-# Auto-updated: $(date)
-
-default=,Speedtest.net Global
-EOF
-    
-    # Test and update each region
-    for region in us eu sg jp vn_fpt vn_vnpt vn_viettel; do
-        if server_info=$(find_working_servers "$region"); then
-            echo "$server_info" >> "$BACKUP_CONFIG_FILE"
-        else
-            # Use previous working server if available
-            prev_server=$(grep "^$region=" "$CONFIG_FILE" 2>/dev/null)
-            if [ -n "$prev_server" ]; then
-                echo "$prev_server" >> "$BACKUP_CONFIG_FILE"
-                _yellow "Using previous working server for $region\n"
-            fi
-        fi
-    done
-    
-    # Update main config
-    cp "$BACKUP_CONFIG_FILE" "$CONFIG_FILE"
-    _green "Server configuration updated successfully.\n"
-}
-
-# Load server configuration
-load_server_config() {
-    if [ ! -f "$CONFIG_FILE" ]; then
-        init_default_servers
-    fi
-    
-    # Read configuration into associative arrays
-    declare -gA SERVER_IDS
-    declare -gA SERVER_NAMES
-    
-    while IFS='=' read -r region info; do
-        [ -z "$region" ] || [[ "$region" =~ ^#.* ]] && continue
-        
-        server_id=$(echo "$info" | cut -d',' -f1)
-        server_name=$(echo "$info" | cut -d',' -f2-)
-        
-        SERVER_IDS["$region"]="$server_id"
-        SERVER_NAMES["$region"]="$server_name"
-    done < "$CONFIG_FILE"
-}
-
-# Enhanced speed test with fallback
-speed_test() {
-    local server_id="$1"
-    local nodeName="$2"
-    local timeout_duration=5  # 5 giây timeout
-    
-    echo -e "\033[0;33mTesting: ${nodeName}...\033[0m"
-    
-    if [ -z "$server_id" ]; then
-        # Test server mặc định
-        timeout "$timeout_duration" ./speedtest-cli/speedtest --progress=no --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
-    else
-        # Test server cụ thể
-        timeout "$timeout_duration" ./speedtest-cli/speedtest --progress=no --server-id="$server_id" --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
-    fi
-    
-    local exit_code=$?
-    
-    if [ $exit_code -eq 124 ]; then
-        # Timeout occurred
-        printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Timeout" "Timeout" "Timeout"
-        return 1
-    elif [ $exit_code -eq 0 ]; then
-        # Success
-        local dl_speed up_speed latency
-        dl_speed=$(awk '/Download/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-        up_speed=$(awk '/Upload/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-        latency=$(awk '/Latency/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-        
-        if [[ -n "${dl_speed}" && -n "${up_speed}" && -n "${latency}" ]]; then
-            printf "\033[0;33m%-18s\033[0;32m%-18s\033[0;31m%-20s\033[0;36m%-12s\033[0m\n" " ${nodeName}" "${up_speed}" "${dl_speed}" "${latency}"
-        else
-            printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Error" "Error" "Error"
-        fi
-    else
-        # Other error
-        printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Failed" "Failed" "Failed"
-        return 1
-    fi
-}
-
-# Main speed test function
-speed() {
-    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
-    
-    # Danh sách server được cập nhật tự động
-    declare -a servers=(
-        ":'Speedtest.net'"
-        "68864:'San Jose, US'"
-        "62493:'Orange France, FR'"
-        "28922:'Amsterdam, NL'"
-        "13538:'Hong Kong, CN'"
-        "7311:'Singapore, SG'"
-        "50467:'Tokyo, JP'"
-        "2515:'FPT HCM, VN'"
-        "2552:'FPT HN, VN'"
-        "17758:'VNPT HCM, VN'"
-        "17757:'VNPT HN, VN'"
-        "54812:'Viettel HCM, VN'"
-        "59915:'Viettel DN, VN'"
-    )
-    
-    # Test từng server với timeout
-    for server in "${servers[@]}"; do
-        IFS=':' read -r server_id server_name <<< "$server"
-        
-        # Loại bỏ dấu nháy đầu và cuối
-        server_name=$(echo "$server_name" | sed "s/^'//;s/'$//")
-        
-        if [ -z "$server_id" ]; then
-            speed_test "" "$server_name"
-        else
-            speed_test "$server_id" "$server_name"
-        fi
-        
-        # Thêm delay nhỏ giữa các test
-        sleep 0.5
-    done
-}
-
-# Check if servers need updating (run weekly)
-should_update_servers() {
-    if [ ! -f "$CONFIG_FILE" ]; then
-        return 0  # Need to create config
-    fi
-    
-    # Check if config is older than 7 days
-    if [ -f "$CONFIG_FILE" ]; then
-        local file_age=$(($(date +%s) - $(stat -c %Y "$CONFIG_FILE" 2>/dev/null || echo 0)))
-        if [ $file_age -gt 604800 ]; then  # 7 days in seconds
-            return 0  # Need to update
-        fi
-    fi
-    
-    return 1  # No update needed
-}
-
-# Auto-update servers if needed
-auto_update_servers() {
-    if should_update_servers; then
-        _yellow "Checking for server updates...\n"
-        if get_server_list; then
-            update_server_config
-        else
-            _yellow "Using existing server configuration.\n"
-        fi
-    fi
-}
-
-# [Rest of the original functions remain the same...]
 get_opsy() {
     [ -f /etc/redhat-release ] && awk '{print $0}' /etc/redhat-release && return
     [ -f /etc/os-release ] && awk -F'[= "]' '/PRETTY_NAME/{print $3,$4,$5}' /etc/os-release && return
@@ -305,6 +53,40 @@ get_opsy() {
 
 next() {
     printf "%-70s\n" "-" | sed 's/\s/-/g'
+}
+
+speed_test() {
+    local nodeName="$2"
+    if [ -z "$1" ];then
+        ./speedtest-cli/speedtest --progress=no --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+    else
+        ./speedtest-cli/speedtest --progress=no --server-id="$1" --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+    fi
+    if [ $? -eq 0 ]; then
+        local dl_speed up_speed latency
+        dl_speed=$(awk '/Download/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        up_speed=$(awk '/Upload/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        latency=$(awk '/Latency/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        if [[ -n "${dl_speed}" && -n "${up_speed}" && -n "${latency}" ]]; then
+            printf "\033[0;33m%-18s\033[0;32m%-18s\033[0;31m%-20s\033[0;36m%-12s\033[0m\n" " ${nodeName}" "${up_speed}" "${dl_speed}" "${latency}"
+        fi
+    fi
+}
+
+speed() {
+    speed_test '' 'Speedtest.net'
+    speed_test '68864' 'San Jose, US'
+    speed_test '62493' 'Orange France, FR'
+    speed_test '28922' 'Amsterdam, NL'
+    speed_test '13538' 'Hong Kong, CN'
+    speed_test '7311' 'Singapore, SG'
+    speed_test '50467' 'Tokyo, JP'
+    speed_test '2515' 'FPT HCM, VN'
+    speed_test '2552' 'FPT HN, VN'
+    speed_test '17758' 'VNPT HCM, VN'
+    speed_test '17757' 'VNPT HN, VN'
+    speed_test '54812' 'Viettel HCM, VN'
+    speed_test '59915' 'Viettel DN, VN'
 }
 
 io_test() {
@@ -337,6 +119,8 @@ calc_size() {
     echo "${total_size} ${unit}"
 }
 
+# since calc_size converts kilobyte to MB, GB and TB
+# to_kibyte converts zfs size from bytes to kilobyte
 to_kibyte() {
     local raw=$1
     awk 'BEGIN{printf "%.0f", '"$raw"' / 1024}'
@@ -344,7 +128,8 @@ to_kibyte() {
 
 calc_sum() {
     local arr=("$@")
-    local s=0
+    local s
+    s=0
     for i in "${arr[@]}"; do
         s=$((s + i))
     done
@@ -463,16 +248,16 @@ install_speedtest() {
         mkdir -p speedtest-cli && tar zxf speedtest.tgz -C ./speedtest-cli && chmod +x ./speedtest-cli/speedtest
         rm -f speedtest.tgz
     fi
-    printf "%-25s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
+    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
 }
 
 print_intro() {
-    echo "-------------------- Enhanced Bench Script with Smart Servers -------------------"
-    echo " Version            : $(_green v2025-06-08-Enhanced)"
-    echo " Original by        : $(_blue Teddysun)"
-    echo " Enhanced with      : $(_yellow Smart Server Detection & Auto-Update)"
+    echo "-------------------- A Bench.sh Script By Teddysun -------------------"
+    echo " Version            : $(_green v2025-05-08)"
+    echo " Usage              : $(_red "wget -qO- https://bibica.net/speedtest | bash")"
 }
 
+# Get System information
 get_system_info() {
     cname=$(awk -F: '/model name/ {name=$2} END {print name}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
     cores=$(awk -F: '/^processor/ {core++} END {print core}' /proc/cpuinfo)
@@ -480,19 +265,37 @@ get_system_info() {
     ccache=$(awk -F: '/cache size/ {cache=$2} END {print cache}' /proc/cpuinfo | sed 's/^[ \t]*//;s/[ \t]*$//')
     cpu_aes=$(grep -i 'aes' /proc/cpuinfo)
     cpu_virt=$(grep -Ei 'vmx|svm' /proc/cpuinfo)
-    tram=$(LANG=C free | awk '/Mem/ {print $2}')
+    tram=$(
+        LANG=C
+        free | awk '/Mem/ {print $2}'
+    )
     tram=$(calc_size "$tram")
-    uram=$(LANG=C free | awk '/Mem/ {print $3}')
+    uram=$(
+        LANG=C
+        free | awk '/Mem/ {print $3}'
+    )
     uram=$(calc_size "$uram")
-    swap=$(LANG=C free | awk '/Swap/ {print $2}')
+    swap=$(
+        LANG=C
+        free | awk '/Swap/ {print $2}'
+    )
     swap=$(calc_size "$swap")
-    uswap=$(LANG=C free | awk '/Swap/ {print $3}')
+    uswap=$(
+        LANG=C
+        free | awk '/Swap/ {print $3}'
+    )
     uswap=$(calc_size "$uswap")
     up=$(awk '{a=$1/86400;b=($1%86400)/3600;c=($1%3600)/60} {printf("%d days, %d hour %d min\n",a,b,c)}' /proc/uptime)
     if _exists "w"; then
-        load=$(LANG=C w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+        load=$(
+            LANG=C
+            w | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        )
     elif _exists "uptime"; then
-        load=$(LANG=C uptime | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+        load=$(
+            LANG=C
+            uptime | head -1 | awk -F'load average:' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//'
+        )
     fi
     opsy=$(get_opsy)
     arch=$(uname -m)
@@ -502,17 +305,23 @@ get_system_info() {
         echo "${arch}" | grep -q "64" && lbit="64" || lbit="32"
     fi
     kern=$(uname -r)
-    in_kernel_no_swap_total_size=$(LANG=C df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | grep total | awk '{ print $2 }')
+    in_kernel_no_swap_total_size=$(
+        LANG=C
+        df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | grep total | awk '{ print $2 }'
+    )
     swap_total_size=$(free -k | grep Swap | awk '{print $2}')
     zfs_total_size=$(to_kibyte "$(calc_sum "$(zpool list -o size -Hp 2> /dev/null)")")
     disk_total_size=$(calc_size $((swap_total_size + in_kernel_no_swap_total_size + zfs_total_size)))
-    in_kernel_no_swap_used_size=$(LANG=C df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | grep total | awk '{ print $3 }')
+    in_kernel_no_swap_used_size=$(
+        LANG=C
+        df -t simfs -t ext2 -t ext3 -t ext4 -t btrfs -t xfs -t vfat -t ntfs --total 2>/dev/null | grep total | awk '{ print $3 }'
+    )
     swap_used_size=$(free -k | grep Swap | awk '{print $3}')
     zfs_used_size=$(to_kibyte "$(calc_sum "$(zpool list -o allocated -Hp 2> /dev/null)")")
     disk_used_size=$(calc_size $((swap_used_size + in_kernel_no_swap_used_size + zfs_used_size)))
     tcpctrl=$(sysctl net.ipv4.tcp_congestion_control | awk -F ' ' '{print $3}')
 }
-
+# Print System information
 print_system_info() {
     if [ -n "$cname" ]; then
         echo " CPU Model          : $(_blue "$cname")"
@@ -593,40 +402,19 @@ print_end_time() {
     echo " Timestamp          : $date_time"
 }
 
-# Command line options
-case "$1" in
-    --update-servers)
-        install_speedtest
-        get_server_list
-        update_server_config
-        exit 0
-        ;;
-    --force-update)
-        rm -f "$CONFIG_FILE" "$BACKUP_CONFIG_FILE"
-        init_default_servers
-        install_speedtest
-        get_server_list
-        update_server_config
-        exit 0
-        ;;
-esac
-
-# Main execution
 ! _exists "wget" && _red "Error: wget command not found.\n" && exit 1
 ! _exists "free" && _red "Error: free command not found.\n" && exit 1
-
-# Check for curl/wget
+# check for curl/wget
 _exists "curl" && local_curl=true
+# test if the host has IPv4/IPv6 connectivity
 [[ -n ${local_curl} ]] && ip_check_cmd="curl -s -m 4" || ip_check_cmd="wget -qO- -T 4"
 ipv4_check=$( (ping -4 -c 1 -W 4 ipv4.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -4 icanhazip.com 2> /dev/null)
 ipv6_check=$( (ping -6 -c 1 -W 4 ipv6.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -6 icanhazip.com 2> /dev/null)
-
 if [[ -z "$ipv4_check" && -z "$ipv6_check" ]]; then
     _yellow "Warning: Both IPv4 and IPv6 connectivity were not detected.\n"
 fi
 [[ -z "$ipv4_check" ]] && online="$(_red "\xe2\x9c\x97 Offline")" || online="$(_green "\xe2\x9c\x93 Online")"
 [[ -z "$ipv6_check" ]] && online+=" / $(_red "\xe2\x9c\x97 Offline")" || online+=" / $(_green "\xe2\x9c\x93 Online")"
-
 start_time=$(date +%s)
 get_system_info
 check_virt
@@ -638,20 +426,7 @@ ipv4_info
 next
 print_io_test
 next
-
-# Initialize default servers and run speedtest
-init_default_servers
-install_speedtest
-
-# Auto-update servers if needed
-auto_update_servers
-
-# Run speed tests
-speed
-
-# Cleanup
-rm -fr speedtest-cli server_list.json
-
+install_speedtest && speed && rm -fr speedtest-cli
 next
 print_end_time
 next
