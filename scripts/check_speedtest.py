@@ -7,20 +7,16 @@ API_URL = "https://www.speedtest.net/api/js/servers"
 # Danh sách các sponsor uy tín theo từng quốc gia
 BIG_SPONSORS_BY_COUNTRY = {
     "US": {
-        "Comcast", "AT&T", "Verizon", "CenturyLink", "Charter", "Cox Communications",
-        "Frontier", "Spectrum", "Nitel", "Boost Mobile", "GigabitNow", "Starry",
-        "Hivelocity", "ReliableSite", "WiLine Networks", "PerfectIP.net", "CTCSCI TECH LTD",
-        "Xfernet", "Aberythmic LLC", "AtlasDigital", "Race Communications", "ServerForge LLC",
-        "EdgeUno", "GeoLinks", "KamaTera", "Hotwire Fision"
+        "Comcast", "AT&T", "Verizon", "Frontier", "Spectrum "
     },
     "FR": {
-        "Orange", "SFR", "Bouygues Telecom", "Free", "OVH", "Numericable"
+        "ORANGE FRANCE", "Scaleway", "Sewan"
     },
     "DE": {
-        "Deutsche Telekom", "Vodafone", "1&1", "Hetzner", "Unitymedia", "Telekom Deutschland"
+        "Deutsche Telekom", "Vodafone", "1&1", "Internetnord GmbH", "DNS:NET Internet Service GmbH", "Cronon GmbH"
     },
     "HK": {
-        "HKT", "PCCW", "CMI", "Hong Kong Broadband Network", "Netvigator"
+        "HKBN", "PCCW", "CMI", "Hong Kong Broadband Network", "Netvigator"
     },
     "SG": {
         "Singtel", "StarHub", "M1", "MyRepublic", "ViewQwest"
@@ -29,7 +25,7 @@ BIG_SPONSORS_BY_COUNTRY = {
         "NTT", "KDDI", "SoftBank", "Rakuten", "IIJ", "So-net"
     },
     "VN": {
-        "FPT Telecom", "VNPT-NET", "Viettel", "CMC Telecom", "VinaPhone", "MobiFone"
+        "FPT Telecom", "VNPT-NET", "Viettel"
     }
 }
 
