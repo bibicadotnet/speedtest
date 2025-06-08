@@ -19,12 +19,20 @@ def is_server_active(server_id):
             ['speedtest', '--server-id=' + server_id, '--accept-license', '--accept-gdpr', '--format=json'],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=120
         )
         
-        data = json.loads(result.stdout)
-        return 'ping' in data and data['ping']['latency'] > 0
-        
+        # Kiểm tra output có phải JSON hợp lệ
+        try:
+            data = json.loads(result.stdout)
+            return 'ping' in data and isinstance(data['ping']['latency'], (int, float))
+        except json.JSONDecodeError:
+            print(f"Invalid JSON response for server {server_id}")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print(f"Timeout checking server {server_id}")
+        return False
     except Exception as e:
         print(f"Error checking server {server_id}: {str(e)}")
         return False
@@ -38,67 +46,87 @@ def find_replacement_server(location):
             ['speedtest', '--list', '--format=json'],
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=120
         )
         
-        servers = json.loads(result.stdout)['servers']
-        
-        # Tìm server phù hợp nhất
-        for server in servers:
-            server_country = server['location']['country'].lower()
-            server_name = server['location']['name'].lower()
+        # Xử lý kết quả tìm kiếm
+        try:
+            servers = json.loads(result.stdout)['servers']
             
-            if (country.lower() in server_country and 
-                search_term.lower() in server_name):
-                return server['id'], f"{server['location']['name']}, {server['location']['country']}"
-        
-        # Nếu không tìm thấy chính xác, tìm server cùng quốc gia
-        for server in servers:
-            if country.lower() in server['location']['country'].lower():
-                return server['id'], f"{server['location']['name']}, {server['location']['country']}"
+            # Tìm server phù hợp nhất
+            for server in servers:
+                server_country = server['location']['country'].lower()
+                server_name = server['location']['name'].lower()
                 
+                if (country.lower() in server_country and 
+                    search_term.lower() in server_name):
+                    return server['id'], f"{server['location']['name']}, {server['location']['country']}"
+            
+            # Fallback: Tìm server cùng quốc gia
+            for server in servers:
+                if country.lower() in server['location']['country'].lower():
+                    return server['id'], f"{server['location']['name']}, {server['location']['country']}"
+                    
+        except (json.JSONDecodeError, KeyError):
+            print("Failed to parse server list")
+            return None, None
+            
+    except subprocess.TimeoutExpired:
+        print("Timeout searching for servers")
     except Exception as e:
         print(f"Error finding replacement: {str(e)}")
     
     return None, None
 
-def update_bench_file(updated_servers):
+def update_bench_file(updates):
     with open('bench.sh', 'r') as f:
         content = f.read()
     
-    for old, new in updated_servers.items():
+    for old, new in updates.items():
         content = content.replace(old, new)
     
     with open('bench.sh', 'w') as f:
         f.write(content)
 
 def main():
-    print(f"Running server check at {datetime.now().isoformat()}")
+    print(f"\n{'='*50}")
+    print(f"Starting server check at {datetime.now().isoformat()}")
+    print(f"{'='*50}\n")
+    
     current_servers = get_current_servers()
-    updated_servers = {}
+    updates = {}
     
     for server_id, location in current_servers:
-        print(f"\nChecking server {server_id} ({location})...")
+        print(f"\n[Checking] Server {server_id} ({location})")
         
-        if not is_server_active(server_id):
-            print("Server inactive. Finding replacement...")
-            new_id, new_location = find_replacement_server(location)
+        if not server_id:  # Skip empty ID
+            print("Skipping empty server ID")
+            continue
             
-            if new_id:
-                old_str = f"speed_test '{server_id}' '{location}'"
-                new_str = f"speed_test '{new_id}' '{new_location}'"
-                updated_servers[old_str] = new_str
-                print(f"Will replace: {old_str} => {new_str}")
-            else:
-                print("No suitable replacement found")
+        if is_server_active(server_id):
+            print("✓ Server is active")
+            continue
+            
+        print("✗ Server inactive. Finding replacement...")
+        new_id, new_location = find_replacement_server(location)
+        
+        if new_id:
+            old_str = f"speed_test '{server_id}' '{location}'"
+            new_str = f"speed_test '{new_id}' '{new_location}'"
+            updates[old_str] = new_str
+            print(f"✓ Replacement found: {new_str}")
         else:
-            print("Server active - no change needed")
+            print("⚠ No suitable replacement found")
     
-    if updated_servers:
-        update_bench_file(updated_servers)
-        print("\nSuccessfully updated server IDs")
+    if updates:
+        update_bench_file(updates)
+        print("\n" + "="*50)
+        print(f"Successfully updated {len(updates)} server IDs")
+        print("="*50)
     else:
-        print("\nNo server updates needed")
+        print("\n" + "="*50)
+        print("All servers are active - no updates needed")
+        print("="*50)
 
 if __name__ == "__main__":
     main()
