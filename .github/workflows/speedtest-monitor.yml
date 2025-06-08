@@ -47,88 +47,122 @@ jobs:
           exit 1
         fi
         
-        # Function test server availability bằng cách ping Speedtest API
+        # Function test server bằng speedtest-cli thực tế
         check_server_exists() {
           local server_id="$1"
           
-          # Thử multiple methods để check server
+          echo "🔍 Testing server $server_id với speedtest-cli..."
           
-          # Method 1: Check via Speedtest web API (ít bị block hơn)
-          local api_url="https://www.speedtest.net/api/js/servers?engine=js&limit=10&search=$server_id"
-          local response=$(curl -s -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" "$api_url" 2>/dev/null || echo "")
+          # Method 1: Sử dụng speedtest-cli để test thực tế server
+          local speedtest_output
+          local exit_code
           
-          if [[ "$response" == *"$server_id"* ]]; then
-            echo "✅ Server $server_id found in API"
+          # Timeout sau 30 giây để tránh hang
+          timeout 30s speedtest-cli --server "$server_id" --no-download --no-upload --simple 2>/dev/null || exit_code=$?
+          
+          if [ $exit_code -eq 0 ]; then
+            echo "✅ Server $server_id responded to speedtest-cli"
             return 0
           fi
           
-          # Method 2: Simple HTTP check to server
-          local server_url="http://speedtest$server_id.net/speedtest/upload.php"
-          if curl -s --connect-timeout 10 --max-time 15 -H "User-Agent: Mozilla/5.0" "$server_url" >/dev/null 2>&1; then
-            echo "✅ Server $server_id HTTP reachable"
+          # Method 2: Kiểm tra server có trong danh sách servers của speedtest
+          echo "🔍 Checking if server $server_id exists in server list..."
+          local server_list
+          server_list=$(timeout 20s speedtest-cli --list 2>/dev/null | grep -E "^\s*$server_id\)" || echo "")
+          
+          if [[ -n "$server_list" ]]; then
+            echo "✅ Server $server_id found in server list: $server_list"
             return 0
           fi
           
-          # Method 3: Alternative server URL format
-          local alt_url="https://$server_id.speedtestcustom.com"
-          if curl -s --connect-timeout 10 --max-time 15 -H "User-Agent: Mozilla/5.0" "$alt_url" >/dev/null 2>&1; then
-            echo "✅ Server $server_id alternative URL reachable"
+          # Method 3: Kiểm tra qua Speedtest API (backup method)
+          echo "🔍 Checking server $server_id via Speedtest API..."
+          local api_response
+          api_response=$(curl -s --connect-timeout 10 --max-time 15 \
+            -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
+            "https://www.speedtest.net/api/js/servers?engine=js&limit=100" 2>/dev/null || echo "")
+          
+          if [[ "$api_response" == *"\"id\":$server_id"* || "$api_response" == *"\"id\":\"$server_id\""* ]]; then
+            echo "✅ Server $server_id found in API response"
             return 0
           fi
           
-          echo "❌ Server $server_id not reachable"
+          echo "❌ Server $server_id not found or not responding"
           return 1
         }
         
-        # Function tìm server thay thế từ online database
-        find_replacement_server_online() {
+        # Function tìm server thay thế bằng cách query speedtest-cli
+        find_replacement_server() {
           local location="$1"
           local current_id="$2"
           
-          echo "🔍 Tìm server thay thế online cho $location..."
+          echo "🔍 Tìm server thay thế cho $location..."
           
-          # Sử dụng public API để lấy danh sách server
-          local search_term=""
+          # Lấy danh sách server từ speedtest-cli
+          local server_list
+          server_list=$(timeout 30s speedtest-cli --list 2>/dev/null || echo "")
+          
+          if [[ -z "$server_list" ]]; then
+            echo "⚠️ Không thể lấy danh sách server từ speedtest-cli"
+            return 1
+          fi
+          
+          # Tìm server dựa trên location keywords
+          local search_patterns=()
           
           case "$location" in
-            *"San Jose"*|*"US"*) search_term="San Jose" ;;
-            *"France"*|*"FR"*) search_term="France" ;;
-            *"Amsterdam"*|*"NL"*) search_term="Amsterdam" ;;
-            *"Hong Kong"*|*"CN"*) search_term="Hong Kong" ;;
-            *"Singapore"*|*"SG"*) search_term="Singapore" ;;
-            *"Tokyo"*|*"JP"*) search_term="Tokyo" ;;
-            *"FPT"*|*"VN"*) search_term="Vietnam FPT" ;;
-            *"VNPT"*|*"VN"*) search_term="Vietnam VNPT" ;;
-            *"Viettel"*|*"VN"*) search_term="Vietnam Viettel" ;;
-            *) search_term="Vietnam" ;;
+            *"San Jose"*|*"US"*|*"United States"*) 
+              search_patterns=("San Jose" "California" "US" "United States") ;;
+            *"France"*|*"FR"*)
+              search_patterns=("France" "Paris" "FR") ;;
+            *"Amsterdam"*|*"Netherlands"*|*"NL"*)
+              search_patterns=("Amsterdam" "Netherlands" "NL") ;;
+            *"Hong Kong"*|*"HK"*)
+              search_patterns=("Hong Kong" "HK") ;;
+            *"Singapore"*|*"SG"*)
+              search_patterns=("Singapore" "SG") ;;
+            *"Tokyo"*|*"Japan"*|*"JP"*)
+              search_patterns=("Tokyo" "Japan" "JP") ;;
+            *"FPT"*|*"VNPT"*|*"Viettel"*|*"Vietnam"*|*"VN"*)
+              search_patterns=("Vietnam" "VN" "FPT" "VNPT" "Viettel" "Ho Chi Minh" "Hanoi") ;;
+            *)
+              search_patterns=("Vietnam" "VN") ;;
           esac
           
-          # Fallback server IDs dựa trên kinh nghiệm (server thường stable)
-          local fallback_servers=""
-          case "$location" in
-            *"San Jose"*|*"US"*) fallback_servers="5029 10390 17846" ;;
-            *"France"*|*"FR"*) fallback_servers="3633 24215 31522" ;;
-            *"Amsterdam"*|*"NL"*) fallback_servers="2042 13218 28922" ;;
-            *"Hong Kong"*|*"CN"*) fallback_servers="13623 21569 24447" ;;
-            *"Singapore"*|*"SG"*) fallback_servers="7192 13623 21569" ;;
-            *"Tokyo"*|*"JP"*) fallback_servers="15047 21118 28910" ;;
-            *"FPT"*|*"VN"*) fallback_servers="13747 21618 24569" ;;
-            *"VNPT"*|*"VN"*) fallback_servers="18445 28922 24569" ;;
-            *"Viettel"*|*"VN"*) fallback_servers="21618 24569 28922" ;;
-          esac
+          # Tìm server match với pattern
+          local candidate_servers=()
           
-          # Test fallback servers
-          for server_id in $fallback_servers; do
-            if [[ "$server_id" != "$current_id" ]]; then
-              echo "🧪 Testing fallback server $server_id..."
-              if check_server_exists "$server_id"; then
-                echo "$server_id"
-                return 0
+          for pattern in "${search_patterns[@]}"; do
+            while IFS= read -r line; do
+              if [[ "$line" =~ ^[[:space:]]*([0-9]+)\)[[:space:]]*(.+)$ ]]; then
+                local found_id="${BASH_REMATCH[1]}"
+                local found_desc="${BASH_REMATCH[2]}"
+                
+                if [[ "$found_id" != "$current_id" ]] && [[ "$found_desc" == *"$pattern"* ]]; then
+                  candidate_servers+=("$found_id")
+                  echo "🎯 Found candidate: $found_id - $found_desc"
+                fi
               fi
-              sleep 2
+            done <<< "$server_list"
+            
+            # Nếu đã tìm thấy candidates, test chúng
+            if [ ${#candidate_servers[@]} -gt 0 ]; then
+              break
             fi
           done
           
+          # Test các candidate servers
+          for candidate_id in "${candidate_servers[@]}"; do
+            echo "🧪 Testing candidate server $candidate_id..."
+            if check_server_exists "$candidate_id"; then
+              echo "✅ Found working replacement: $candidate_id"
+              echo "$candidate_id"
+              return 0
+            fi
+            sleep 2
+          done
+          
+          echo "❌ Không tìm thấy server thay thế cho $location"
           return 1
         }
         
@@ -161,7 +195,7 @@ jobs:
             FAILED_SERVERS+=("$server_id:$location")
             
             # Tìm server thay thế
-            new_server_id=$(find_replacement_server_online "$location" "$server_id")
+            new_server_id=$(find_replacement_server "$location" "$server_id")
             
             if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
               echo "✅ Tìm thấy server thay thế $new_server_id cho $location"
