@@ -38,12 +38,12 @@ jobs:
     - name: Check servers availability
       run: |
         # Đọc danh sách server từ bench.sh
-        echo "📊 Đọc danh sách server từ bench.sh..."
+        echo "Doc danh sach server tu bench.sh..."
         
         mapfile -t server_lines < <(grep "speed_test '[0-9]" bench.sh)
         
         if [ ${#server_lines[@]} -eq 0 ]; then
-          echo "❌ Không tìm thấy server nào trong bench.sh"
+          echo "ERROR: Khong tim thay server nao trong bench.sh"
           exit 1
         fi
         
@@ -51,43 +51,44 @@ jobs:
         check_server_exists() {
           local server_id="$1"
           
-          echo "🔍 Testing server $server_id với speedtest-cli..."
+          echo "Testing server $server_id voi speedtest-cli..."
           
           # Method 1: Sử dụng speedtest-cli để test thực tế server
-          local speedtest_output
-          local exit_code
+          local exit_code=1
           
           # Timeout sau 30 giây để tránh hang
-          timeout 30s speedtest-cli --server "$server_id" --no-download --no-upload --simple 2>/dev/null || exit_code=$?
+          if timeout 30s speedtest-cli --server "$server_id" --no-download --no-upload --simple >/dev/null 2>&1; then
+            exit_code=0
+          fi
           
           if [ $exit_code -eq 0 ]; then
-            echo "✅ Server $server_id responded to speedtest-cli"
+            echo "SUCCESS: Server $server_id responded to speedtest-cli"
             return 0
           fi
           
           # Method 2: Kiểm tra server có trong danh sách servers của speedtest
-          echo "🔍 Checking if server $server_id exists in server list..."
+          echo "Checking if server $server_id exists in server list..."
           local server_list
           server_list=$(timeout 20s speedtest-cli --list 2>/dev/null | grep -E "^\s*$server_id\)" || echo "")
           
           if [[ -n "$server_list" ]]; then
-            echo "✅ Server $server_id found in server list: $server_list"
+            echo "SUCCESS: Server $server_id found in server list: $server_list"
             return 0
           fi
           
           # Method 3: Kiểm tra qua Speedtest API (backup method)
-          echo "🔍 Checking server $server_id via Speedtest API..."
+          echo "Checking server $server_id via Speedtest API..."
           local api_response
           api_response=$(curl -s --connect-timeout 10 --max-time 15 \
             -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
             "https://www.speedtest.net/api/js/servers?engine=js&limit=100" 2>/dev/null || echo "")
           
           if [[ "$api_response" == *"\"id\":$server_id"* || "$api_response" == *"\"id\":\"$server_id\""* ]]; then
-            echo "✅ Server $server_id found in API response"
+            echo "SUCCESS: Server $server_id found in API response"
             return 0
           fi
           
-          echo "❌ Server $server_id not found or not responding"
+          echo "FAILED: Server $server_id not found or not responding"
           return 1
         }
         
@@ -96,14 +97,14 @@ jobs:
           local location="$1"
           local current_id="$2"
           
-          echo "🔍 Tìm server thay thế cho $location..."
+          echo "Tim server thay the cho $location..."
           
           # Lấy danh sách server từ speedtest-cli
           local server_list
           server_list=$(timeout 30s speedtest-cli --list 2>/dev/null || echo "")
           
           if [[ -z "$server_list" ]]; then
-            echo "⚠️ Không thể lấy danh sách server từ speedtest-cli"
+            echo "WARNING: Khong the lay danh sach server tu speedtest-cli"
             return 1
           fi
           
@@ -140,7 +141,7 @@ jobs:
                 
                 if [[ "$found_id" != "$current_id" ]] && [[ "$found_desc" == *"$pattern"* ]]; then
                   candidate_servers+=("$found_id")
-                  echo "🎯 Found candidate: $found_id - $found_desc"
+                  echo "Found candidate: $found_id - $found_desc"
                 fi
               fi
             done <<< "$server_list"
@@ -153,16 +154,16 @@ jobs:
           
           # Test các candidate servers
           for candidate_id in "${candidate_servers[@]}"; do
-            echo "🧪 Testing candidate server $candidate_id..."
+            echo "Testing candidate server $candidate_id..."
             if check_server_exists "$candidate_id"; then
-              echo "✅ Found working replacement: $candidate_id"
+              echo "SUCCESS: Found working replacement: $candidate_id"
               echo "$candidate_id"
               return 0
             fi
             sleep 2
           done
           
-          echo "❌ Không tìm thấy server thay thế cho $location"
+          echo "ERROR: Khong tim thay server thay the cho $location"
           return 1
         }
         
@@ -170,7 +171,7 @@ jobs:
         FAILED_SERVERS=()
         REPLACED_SERVERS=()
         
-        echo "📊 Kiểm tra ${#server_lines[@]} speedtest servers..."
+        echo "Kiem tra ${#server_lines[@]} speedtest servers..."
         echo "=================================="
         
         # Kiểm tra từng server với random delay
@@ -179,35 +180,41 @@ jobs:
           location=$(echo "$line" | sed -n "s/.*speed_test '[0-9]*' '\([^']*\)'.*/\1/p")
           
           if [[ -z "$server_id" || -z "$location" ]]; then
-            echo "⚠️ Không thể parse: $line"
+            echo "WARNING: Khong the parse: $line"
             continue
           fi
           
-          echo "🧪 Kiểm tra Server $server_id ($location)"
+          echo "Kiem tra Server $server_id ($location)"
           
           # Random delay để tránh rate limiting
           sleep $((RANDOM % 5 + 3))
           
           if check_server_exists "$server_id"; then
-            echo "✅ Server $server_id OK"
+            echo "OK: Server $server_id"
           else
-            echo "❌ Server $server_id FAILED"
+            echo "FAILED: Server $server_id"
             FAILED_SERVERS+=("$server_id:$location")
             
             # Tìm server thay thế
             new_server_id=$(find_replacement_server "$location" "$server_id")
             
             if [[ -n "$new_server_id" && "$new_server_id" != "$server_id" ]]; then
-              echo "✅ Tìm thấy server thay thế $new_server_id cho $location"
+              echo "SUCCESS: Tim thay server thay the $new_server_id cho $location"
               
-              # Thay thế trong bench.sh
-              sed -i "s/speed_test '$server_id'/speed_test '$new_server_id'/g" bench.sh
+              # Thay thế trong bench.sh - escape ký tự đặc biệt
+              # Sử dụng sed với delimiter khác để tránh conflict
+              sed -i "s|speed_test '$server_id'|speed_test '$new_server_id'|g" bench.sh
               
-              CHANGED=true
-              REPLACED_SERVERS+=("$server_id -> $new_server_id ($location)")
-              echo "📝 Đã cập nhật bench.sh: $server_id -> $new_server_id"
+              # Verify thay đổi thành công
+              if grep -q "speed_test '$new_server_id'" bench.sh; then
+                CHANGED=true
+                REPLACED_SERVERS+=("$server_id -> $new_server_id ($location)")
+                echo "UPDATE: Da cap nhat bench.sh: $server_id -> $new_server_id"
+              else
+                echo "WARNING: Khong the cap nhat bench.sh cho server $server_id"
+              fi
             else
-              echo "⚠️ Không tìm thấy server thay thế cho $location"
+              echo "WARNING: Khong tim thay server thay the cho $location"
             fi
           fi
           
@@ -215,19 +222,19 @@ jobs:
         done
         
         echo "=================================="
-        echo "📊 Tổng kết:"
-        echo "- Số server failed: ${#FAILED_SERVERS[@]}"
-        echo "- Số server replaced: ${#REPLACED_SERVERS[@]}"
+        echo "Tong ket:"
+        echo "- So server failed: ${#FAILED_SERVERS[@]}"
+        echo "- So server replaced: ${#REPLACED_SERVERS[@]}"
         
         if [ ${#FAILED_SERVERS[@]} -gt 0 ]; then
-          echo "🔴 Server failed:"
+          echo "Server failed:"
           for failed in "${FAILED_SERVERS[@]}"; do
             echo "  * $failed"
           done
         fi
         
         if [ ${#REPLACED_SERVERS[@]} -gt 0 ]; then
-          echo "🟢 Server replaced:"
+          echo "Server replaced:"
           for replaced in "${REPLACED_SERVERS[@]}"; do
             echo "  * $replaced"
           done
@@ -235,11 +242,11 @@ jobs:
         
         # Safety check: không thay đổi nếu quá nhiều server failed
         if [ ${#FAILED_SERVERS[@]} -gt 6 ]; then
-          echo "⚠️ Quá nhiều server failed (${#FAILED_SERVERS[@]}), có thể là network issue."
-          echo "Chỉ thực hiện thay đổi nếu có ít nhất 1 server thay thế thành công."
+          echo "WARNING: Qua nhieu server failed (${#FAILED_SERVERS[@]}), co the la network issue."
+          echo "Chi thuc hien thay doi neu co it nhat 1 server thay the thanh cong."
           if [ ${#REPLACED_SERVERS[@]} -eq 0 ]; then
             CHANGED=false
-            echo "❌ Không có server nào được thay thế thành công, hủy commit."
+            echo "ERROR: Khong co server nao duoc thay the thanh cong, huy commit."
           fi
         fi
         
@@ -247,14 +254,14 @@ jobs:
         
         # Tạo summary cho GitHub Actions
         {
-          echo "## 🚀 Speedtest Server Check Results"
+          echo "## Speedtest Server Check Results"
           echo ""
           echo "- **Failed servers:** ${#FAILED_SERVERS[@]}"
           echo "- **Replaced servers:** ${#REPLACED_SERVERS[@]}"
           echo "- **Changes made:** $CHANGED"
           echo ""
           if [ ${#REPLACED_SERVERS[@]} -gt 0 ]; then
-            echo "### ✅ Successful Replacements:"
+            echo "### Successful Replacements:"
             for replaced in "${REPLACED_SERVERS[@]}"; do
               echo "- $replaced"
             done
@@ -267,16 +274,16 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        echo "📝 Thay đổi trong bench.sh:"
+        echo "Thay doi trong bench.sh:"
         git diff bench.sh
         
         if git diff --quiet bench.sh; then
-          echo "⚠️ Không có thay đổi thực tế trong bench.sh"
+          echo "WARNING: Khong co thay doi thuc te trong bench.sh"
           exit 0
         fi
         
         git add bench.sh
-        git commit -m "🔄 Auto-update speedtest servers - $(date +'%Y-%m-%d %H:%M')"
+        git commit -m "Auto-update speedtest servers - $(date +'%Y-%m-%d %H:%M')"
         git push
         
-        echo "✅ Đã commit và push thay đổi thành công!"
+        echo "SUCCESS: Da commit va push thay doi thanh cong!"
