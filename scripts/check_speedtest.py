@@ -14,8 +14,7 @@ def fetch_first_id(provider):
         }, timeout=10)
         response.raise_for_status()
         servers = response.json()
-
-        # Lấy server đầu tiên trong danh sách
+        
         if servers and "id" in servers[0]:
             return str(servers[0]["id"])
     except Exception as e:
