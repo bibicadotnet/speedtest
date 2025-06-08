@@ -59,7 +59,7 @@ jobs:
           # Cách 2: Bypass bằng cách không auto-select location
           echo "Trying alternative method to get full server list..."
           server_list=$(timeout 90s python3 -c "
-import speedtest
+
 try:
     s = speedtest.Speedtest()
     servers = s.get_servers()
