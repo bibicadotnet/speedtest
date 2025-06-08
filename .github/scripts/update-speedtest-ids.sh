@@ -3,7 +3,6 @@
 # Script: Auto Update Speedtest Server IDs
 # Author: GitHub Action
 # Description: Automatically check and update speedtest server IDs in bench.sh
-
 set -e
 
 # Màu sắc cho output
