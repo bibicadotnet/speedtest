@@ -25,92 +25,81 @@ def is_server_active(server_id):
             'Referer': 'https://www.speedtest.net/'
         }
         
-        # Kiểm tra qua cả 2 API endpoint
-        url1 = f"https://www.speedtest.net/api/js/servers?engine=js&search={server_id}&limit=1"
-        url2 = f"https://www.speedtest.net/speedtest-servers-static.php?ids={server_id}"
+        # Kiểm tra qua API endpoint chính
+        url = f"https://www.speedtest.net/api/js/servers?engine=js&ids={server_id}"
+        response = requests.get(url, headers=headers, timeout=10)
         
-        # Thử endpoint đầu tiên
-        response = requests.get(url1, headers=headers, timeout=10)
         if response.status_code == 200:
             data = response.json()
-            if data and str(data[0]['id']) == server_id:
+            if isinstance(data, list) and len(data) > 0:
                 return True
         
-        # Thử endpoint thứ 2 nếu endpoint đầu không thành công
-        response = requests.get(url2, headers=headers, timeout=10)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'xml')
-            if soup.find('server', {'id': server_id}):
+        # Kiểm tra thêm qua API ping
+        ping_url = f"https://www.speedtest.net/api/js/ping?serverId={server_id}"
+        ping_response = requests.get(ping_url, headers=headers, timeout=10)
+        
+        if ping_response.status_code == 200:
+            ping_data = ping_response.json()
+            if ping_data.get('ping') is not None:
                 return True
                 
         return False
+        
     except Exception as e:
         print(f"Error checking server {server_id}: {str(e)}")
         return False  # Coi như không hoạt động nếu có lỗi
 
 # Hàm tìm server thay thế (phiên bản cải tiến)
-def find_replacement_server(server_id, location):
+def find_replacement_server(location):
     try:
         search_term = location.split(',')[0].strip()
         country = location.split(',')[-1].strip()
         
-        # Thêm header
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Referer': 'https://www.speedtest.net/'
         }
         
-        # Xử lý đặc biệt cho VN
-        vn_providers = {
-            'FPT': ['FPT', 'fpt'],
-            'VNPT': ['VNPT', 'vnpt'],
-            'Viettel': ['Viettel', 'viettel']
-        }
-        
-        if country == 'VN':
-            for provider, keywords in vn_providers.items():
-                if provider in location:
-                    for keyword in keywords:
-                        url = f"https://www.speedtest.net/api/js/servers?engine=js&search={keyword}&limit=50"
-                        response = requests.get(url, headers=headers, timeout=15)
-                        servers = response.json()
-                        
-                        for server in servers:
-                            if (country.lower() in server['country'].lower() and 
-                                any(kw.lower() in server['sponsor'].lower() for kw in keywords)):
-                                return str(server['id']), f"{server['sponsor']}, {server['country']}"
-        
-        # Tìm kiếm thông thường cho các quốc gia khác
+        # Tìm kiếm server
         url = f"https://www.speedtest.net/api/js/servers?engine=js&search={search_term}&limit=50"
         response = requests.get(url, headers=headers, timeout=15)
+        
+        if response.status_code != 200:
+            return None, None
+            
         servers = response.json()
+        if not servers:
+            return None, None
         
         # Ưu tiên server cùng thành phố và quốc gia
-        for server in servers:
-            if (country.lower() in server['country'].lower() and 
-                search_term.lower() in server['name'].lower()):
-                return str(server['id']), f"{server['name']}, {server['country']}"
+        best_match = None
+        partial_match = None
         
-        # Ưu tiên server cùng quốc gia
         for server in servers:
-            if country.lower() in server['country'].lower():
-                return str(server['id']), f"{server['name']}, {server['country']}"
+            server_country = server.get('country', '').strip()
+            server_name = server.get('name', '').strip()
+            
+            if country.lower() == server_country.lower():
+                if search_term.lower() in server_name.lower():
+                    best_match = server
+                    break
+                elif not partial_match:
+                    partial_match = server
         
-        # Trả về server có ping tốt nhất nếu không tìm thấy
-        if servers:
-            servers.sort(key=lambda x: x.get('latency', 999))
-            return str(servers[0]['id']), f"{servers[0]['name']}, {servers[0]['country']}"
+        selected = best_match or partial_match or servers[0]
+        return str(selected['id']), f"{selected['name']}, {selected['country']}"
             
     except Exception as e:
         print(f"Error finding replacement for {location}: {str(e)}")
-    
-    return None, None
+        return None, None
 
 # Kiểm tra và cập nhật từng server
 updated = False
 for server_id, location in current_servers:
     print(f"\nChecking server {server_id} ({location})...")
+    
     if not server_id:  # Bỏ qua trường hợp empty ID
+        print("Skipping empty server ID")
         continue
         
     active = is_server_active(server_id)
@@ -118,16 +107,20 @@ for server_id, location in current_servers:
     
     if not active:
         print(f"Finding replacement for {location}...")
-        new_id, new_location = find_replacement_server(server_id, location)
+        new_id, new_location = find_replacement_server(location)
         
-        if new_id:
+        if new_id and new_location:
             old_str = f"speed_test '{server_id}' '{location}'"
             new_str = f"speed_test '{new_id}' '{new_location}'"
-            content = content.replace(old_str, new_str)
-            print(f"Replaced: {old_str} => {new_str}")
-            updated = True
+            
+            if old_str in content:
+                content = content.replace(old_str, new_str)
+                print(f"Replaced: {old_str} => {new_str}")
+                updated = True
+            else:
+                print("Original string not found in content")
         else:
-            print(f"Warning: No replacement found for {location}")
+            print("No suitable replacement found")
 
 # Ghi lại file nếu có thay đổi
 if updated:
