@@ -75,18 +75,18 @@ speed_test() {
 
 speed() {
     speed_test '' 'Speedtest.net'
-    # speed_test '60075' 'San Jose, Costa Rica'  # invalid ID, no replacement found
-    # speed_test '53171' 'Poitiers, France'  # invalid ID, no replacement found
-    # speed_test '28922' 'Amsterdam, Netherlands'  # invalid ID, no replacement found
-    # speed_test '13538' 'Hong Kong, Hong Kong'  # invalid ID, no replacement found
-    # speed_test '31293' 'Singapore, Singapore'  # invalid ID, no replacement found
-    # speed_test '48463' 'Tokyo, Japan'  # invalid ID, no replacement found
-    # speed_test '2515' 'FPT HCM, VN'  # invalid ID, no replacement found
-    # speed_test '2552' 'FPT HN, VN'  # invalid ID, no replacement found
-    # speed_test '2222222' 'VNPT HCM, VN'  # invalid ID, no replacement found
-    # speed_test '17757' 'VNPT HN, VN'  # invalid ID, no replacement found
-    # speed_test '54812' 'Viettel HCM, VN'  # invalid ID, no replacement found
-    # speed_test '59915' 'Viettel DN, VN'  # invalid ID, no replacement found
+    speed_test '60075' 'Spectrum, Los Angeles'
+    speed_test '53171' 'Contabo, Lauterbourg'
+    speed_test '28922' 'Cronon GmbH, Berlin'
+    speed_test '13538' 'Hong Kong, Hong Kong'
+    speed_test '31293' 'Singtel, Singapore'
+    speed_test '48463' 'Verizon, Tokyo'
+    speed_test '2515' 'FPT Telecom, Ho Chi Minh'
+    speed_test '2552' 'FPT Telecom, Ha Noi'
+    speed_test '2222222' 'VNPT-NET, Ho Chi Minh'
+    speed_test '17757' 'VNPT-NET, Ha Noi'
+    speed_test '54812' 'Viettel Network, Ho Chi Minh'
+    speed_test '59915' 'Viettel Network, Ho Chi Minh'
 }
 
 io_test() {
