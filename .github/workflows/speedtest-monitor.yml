@@ -43,137 +43,157 @@ jobs:
           exit 1
         fi
         
-        # Function get server list một lần và cache
-        get_server_list() {
-          echo "Getting complete server list from speedtest-cli..."
-          timeout 60s speedtest-cli --list 2>/dev/null || echo ""
-        }
-        
-        # Function test server bằng cách kiểm tra server list
-        check_server_exists() {
-          local server_id="$1"
-          local server_list="$2"
+        # Function get full server list không giới hạn theo location - KHÔNG DÙNG NỮA
+        # get_server_list() {
+          echo "Getting complete global server list from speedtest-cli..."
           
-          echo "Checking server $server_id in server list..."
+          # Cách 1: Dùng --list với bypass location filtering
+          local server_list
+          server_list=$(timeout 90s speedtest-cli --list --secure 2>/dev/null || echo "")
           
-          # Kiểm tra exact match trong server list
-          # Format: "   1234) Server Name (Location, Country) [Distance km]"
-          local server_match
-          server_match=$(echo "$server_list" | grep -E "^[[:space:]]*${server_id}\)" | head -1)
-          
-          if [[ -n "$server_match" ]]; then
-            echo "SUCCESS: Server $server_id found: $server_match"
+          if [[ -n "$server_list" && $(echo "$server_list" | wc -l) -gt 100 ]]; then
+            echo "$server_list"
             return 0
           fi
           
-          echo "FAILED: Server $server_id not in server list"
+          # Cách 2: Bypass bằng cách không auto-select location
+          echo "Trying alternative method to get full server list..."
+          server_list=$(timeout 90s python3 -c "
+import speedtest
+try:
+    s = speedtest.Speedtest()
+    servers = s.get_servers()
+    for distance in sorted(servers.keys()):
+        for server in servers[distance]:
+            print(f'{server[\"id\"]}) {server[\"sponsor\"]} ({server[\"name\"]}, {server[\"country\"]}) [{distance:.2f} km]')
+except Exception as e:
+    print('Error getting servers:', e)
+" 2>/dev/null || echo "")
+          
+          if [[ -n "$server_list" ]]; then
+            echo "$server_list"
+            return 0
+          fi
+          
+          echo ""
           return 1
         }
         
-        # Function tìm server thay thế chính xác
+        # Function test server bằng cách ping URL trực tiếp
+        check_server_exists() {
+          local server_id="$1"
+          
+          echo "Testing server $server_id via direct URL ping..."
+          
+          # Speedtest server URLs có format: 
+          # http://[server_id].speedtest.net/speedtest/upload.php
+          local server_url="http://${server_id}.speedtest.net/speedtest/upload.php"
+          
+          # Test bằng curl với timeout ngắn
+          if timeout 15s curl -s --connect-timeout 10 --max-time 15 \
+              -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64)" \
+              --head "$server_url" >/dev/null 2>&1; then
+            echo "SUCCESS: Server $server_id is alive"
+            return 0
+          fi
+          
+          # Test URL alternative
+          server_url="https://${server_id}.speedtest.net/speedtest/upload.php"
+          if timeout 15s curl -s --connect-timeout 10 --max-time 15 \
+              -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64)" \
+              --head "$server_url" >/dev/null 2>&1; then
+            echo "SUCCESS: Server $server_id is alive (HTTPS)"
+            return 0
+          fi
+          
+          echo "FAILED: Server $server_id is not responding"
+          return 1
+        }
+        
+        # Function tìm server thay thế cùng location
         find_replacement_server() {
           local location="$1"
           local current_id="$2"
-          local server_list="$3"
           
-          echo "Tim server thay the cho $location (excluding $current_id)..."
+          echo "Tim server thay the cho location: $location (excluding $current_id)..."
           
-          if [[ -z "$server_list" ]]; then
-            echo "ERROR: Server list empty, cannot find replacement"
-            return 1
-          fi
-          
-          # Định nghĩa search patterns dựa trên location
-          local search_patterns=()
-          
+          # Lấy server list chỉ cho region cần thiết
+          local region_servers
           case "$location" in
             *"San Jose"*|*"US"*|*"United States"*|*"California"*) 
-              search_patterns=("San Jose" "California" "United States" "US") ;;
+              echo "Searching for US West Coast servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(San Jose|California|US|United States)" | head -20)
+              ;;
             *"France"*|*"FR"*|*"Paris"*)
-              search_patterns=("France" "Paris" "FR") ;;
+              echo "Searching for France servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(France|Paris|FR)" | head -20)
+              ;;
             *"Amsterdam"*|*"Netherlands"*|*"NL"*)
-              search_patterns=("Amsterdam" "Netherlands" "NL") ;;
+              echo "Searching for Netherlands servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(Amsterdam|Netherlands|NL)" | head -20)
+              ;;
             *"Hong Kong"*|*"HK"*)
-              search_patterns=("Hong Kong" "HK") ;;
+              echo "Searching for Hong Kong servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(Hong Kong|HK)" | head -20)
+              ;;
             *"Singapore"*|*"SG"*)
-              search_patterns=("Singapore" "SG") ;;
+              echo "Searching for Singapore servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(Singapore|SG)" | head -20)
+              ;;
             *"Tokyo"*|*"Japan"*|*"JP"*)
-              search_patterns=("Tokyo" "Japan" "JP") ;;
+              echo "Searching for Japan servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(Tokyo|Japan|JP)" | head -20)
+              ;;
             *"FPT"*|*"VNPT"*|*"Viettel"*|*"Vietnam"*|*"VN"*|*"HN"*|*"HCM"*)
-              search_patterns=("Vietnam" "VN" "FPT" "VNPT" "Viettel" "Ho Chi Minh" "Hanoi") ;;
+              echo "Searching for Vietnam servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | grep -i -E "(Vietnam|VN|FPT|VNPT|Viettel|Ho Chi Minh|Hanoi)" | head -20)
+              ;;
             *)
-              search_patterns=("Vietnam" "VN") ;;
+              echo "Searching for general servers..."
+              region_servers=$(timeout 30s speedtest-cli --list 2>/dev/null | head -50)
+              ;;
           esac
           
-          # Tìm candidate servers
-          local candidate_servers=()
-          
-          for pattern in "${search_patterns[@]}"; do
-            echo "Searching for pattern: $pattern"
-            
-            # Parse server list với regex chính xác
-            while IFS= read -r line; do
-              if [[ "$line" =~ ^[[:space:]]*([0-9]+)\)[[:space:]]*(.+)$ ]]; then
-                local found_id="${BASH_REMATCH[1]}"
-                local found_desc="${BASH_REMATCH[2]}"
-                
-                # Kiểm tra pattern match và loại trừ current server
-                if [[ "$found_id" != "$current_id" ]] && [[ "$found_desc" =~ $pattern ]]; then
-                  candidate_servers+=("$found_id")
-                  echo "Found candidate: $found_id - $found_desc"
-                fi
-              fi
-            done <<< "$server_list"
-            
-            # Nếu đã tìm thấy candidates, test ngay
-            if [ ${#candidate_servers[@]} -gt 0 ]; then
-              break
-            fi
-          done
-          
-          if [ ${#candidate_servers[@]} -eq 0 ]; then
-            echo "WARNING: No candidate servers found for patterns: ${search_patterns[*]}"
+          if [[ -z "$region_servers" ]]; then
+            echo "ERROR: Cannot get server list for region"
             return 1
           fi
           
-          # Test từng candidate chỉ bằng cách kiểm tra trong server list
+          echo "Found region servers:"
+          echo "$region_servers"
+          
+          # Parse và test từng server
+          local candidate_servers=()
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*([0-9]+)\) ]]; then
+              local found_id="${BASH_REMATCH[1]}"
+              if [[ "$found_id" != "$current_id" ]]; then
+                candidate_servers+=("$found_id")
+              fi
+            fi
+          done <<< "$region_servers"
+          
+          echo "Testing ${#candidate_servers[@]} candidate servers..."
+          
+          # Test từng candidate
           for candidate_id in "${candidate_servers[@]}"; do
             echo "Testing candidate server $candidate_id..."
             
-            # Chỉ kiểm tra có trong server list hay không
-            local candidate_match
-            candidate_match=$(echo "$server_list" | grep -E "^[[:space:]]*${candidate_id}\)" | head -1)
-            
-            if [[ -n "$candidate_match" ]]; then
-              echo "SUCCESS: Candidate $candidate_id found in server list"
-              echo "Details: $candidate_match"
+            if check_server_exists "$candidate_id"; then
+              echo "SUCCESS: Found working replacement: $candidate_id"
               echo "$candidate_id"
               return 0
-            else
-              echo "FAILED: Candidate $candidate_id not in server list"
             fi
             
-            # Delay giữa các test
-            sleep 1
+            sleep 2
           done
           
           echo "ERROR: No working replacement server found for $location"
           return 1
         }
         
-        # Get server list một lần để dùng chung
-        echo "Fetching official speedtest server list..."
-        SERVER_LIST=$(get_server_list)
-        
-        if [[ -z "$SERVER_LIST" ]]; then
-          echo "ERROR: Cannot fetch server list from speedtest-cli"
-          exit 1
-        fi
-        
-        echo "Server list fetched successfully. Sample:"
-        echo "$SERVER_LIST" | head -5
-        echo "..."
-        echo "Total servers in list: $(echo "$SERVER_LIST" | wc -l)"
+        # Get server list một lần để dùng chung - KHÔNG CẦN NỮA
+        # SERVER_LIST=$(get_server_list)
         
         CHANGED=false
         FAILED_SERVERS=()
@@ -197,7 +217,7 @@ jobs:
           # Random delay để tránh rate limiting
           sleep $((RANDOM % 5 + 3))
           
-          if check_server_exists "$server_id" "$SERVER_LIST"; then
+          if check_server_exists "$server_id"; then
             echo "OK: Server $server_id"
           else
             echo "FAILED: Server $server_id"
@@ -205,7 +225,7 @@ jobs:
             
             # Tìm server thay thế
             echo "Tim server thay the cho $location..."
-            new_server_id=$(find_replacement_server "$location" "$server_id" "$SERVER_LIST")
+            new_server_id=$(find_replacement_server "$location" "$server_id")
             
             # Validate new_server_id
             if [[ -n "$new_server_id" && "$new_server_id" =~ ^[0-9]+$ && "$new_server_id" != "$server_id" ]]; then
