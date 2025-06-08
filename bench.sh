@@ -75,7 +75,7 @@ speed_test() {
 
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '68864' 'San Jose, US'
+    speed_test '11111' 'San Jose, US'
     speed_test '62493' 'Orange France, FR'
     speed_test '28922' 'Amsterdam, NL'
     speed_test '13538' 'Hong Kong, CN'
@@ -83,7 +83,7 @@ speed() {
     speed_test '50467' 'Tokyo, JP'
     speed_test '2515' 'FPT HCM, VN'
     speed_test '2552' 'FPT HN, VN'
-    speed_test '17758' 'VNPT HCM, VN'
+    speed_test '2222222' 'VNPT HCM, VN'
     speed_test '17757' 'VNPT HN, VN'
     speed_test '54812' 'Viettel HCM, VN'
     speed_test '59915' 'Viettel DN, VN'
