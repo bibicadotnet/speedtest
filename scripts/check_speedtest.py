@@ -9,9 +9,9 @@ def is_host_alive(host):
     try:
         base_host = host.split(":")[0]
         url = f"http://{base_host}/speedtest/upload.php"
-        response = requests.head(url, timeout=5)
-        return response.status_code < 500
-    except:
+        r = requests.head(url, timeout=5)
+        return r.status_code < 500
+    except Exception:
         return False
 
 def fetch_speedtest_servers():
@@ -46,21 +46,31 @@ def find_replacement(servers, original_location):
 def build_speed_block(entries, servers):
     updated_lines = []
     for id_, location in entries:
-        if not id_:
+        if not id_:  # dòng default speed_test '' 'Speedtest.net'
             updated_lines.append(f"    speed_test '' '{location}'")
             continue
 
         server = find_server_by_id(servers, id_)
-        if server and is_host_alive(server['host']):
+        if not server:
+            print(f"ID {id_} ({location}) is INVALID. Finding replacement...")
+            replacement = find_replacement(servers, location)
+            if replacement:
+                new_loc = f"{replacement['name']}, {replacement['country']}"
+                updated_lines.append(f"    speed_test '{replacement['id']}' '{new_loc}'  # replaced (invalid ID)")
+            else:
+                updated_lines.append(f"    # speed_test '{id_}' '{location}'  # invalid ID, no replacement found")
+            continue
+
+        if is_host_alive(server['host']):
             updated_lines.append(f"    speed_test '{id_}' '{location}'")
         else:
-            print(f"ID {id_} ({location}) seems down. Finding replacement...")
+            print(f"ID {id_} ({location}) is DOWN. Finding replacement...")
             replacement = find_replacement(servers, location)
             if replacement:
                 new_loc = f"{replacement['name']}, {replacement['country']}"
                 updated_lines.append(f"    speed_test '{replacement['id']}' '{new_loc}'  # replaced")
             else:
-                updated_lines.append(f"    # speed_test '{id_}' '{location}'  # no replacement found")
+                updated_lines.append(f"    # speed_test '{id_}' '{location}'  # down, no replacement found")
     return "speed() {\n" + "\n".join(updated_lines) + "\n}"
 
 def main():
@@ -71,13 +81,12 @@ def main():
     entries = extract_speed_entries(content)
     new_speed_func = build_speed_block(entries, servers)
 
-    # Replace old speed() block
     updated_content = re.sub(r"speed\(\) \{.*?\}", new_speed_func, content, flags=re.DOTALL)
 
     with open(BENCH_FILE, 'w', encoding='utf-8') as f:
         f.write(updated_content)
 
-    print("✅ bench.sh updated successfully.")
+    print("bench.sh updated successfully.")
 
 if __name__ == "__main__":
     main()
