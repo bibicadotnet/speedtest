@@ -50,7 +50,7 @@ def main():
         with open(BENCH_FILE, "w", encoding="utf-8") as f:
             f.write(updated_content)
 
-        print("✅ bench.sh updated successfully.")
+        print("bench.sh updated successfully.")
     except FileNotFoundError:
         print(f"[ERROR] {BENCH_FILE} not found.")
     except Exception as e:
