@@ -191,48 +191,79 @@ load_server_config() {
 speed_test() {
     local server_id="$1"
     local nodeName="$2"
-    local max_retries=2
-    local retry=0
+    local timeout_duration=5  # 5 giây timeout
     
-    while [ $retry -lt $max_retries ]; do
-        if [ -z "$server_id" ]; then
-            ./speedtest-cli/speedtest --progress=no --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+    echo -e "\033[0;33mTesting: ${nodeName}...\033[0m"
+    
+    if [ -z "$server_id" ]; then
+        # Test server mặc định
+        timeout "$timeout_duration" ./speedtest-cli/speedtest --progress=no --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+    else
+        # Test server cụ thể
+        timeout "$timeout_duration" ./speedtest-cli/speedtest --progress=no --server-id="$server_id" --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+    fi
+    
+    local exit_code=$?
+    
+    if [ $exit_code -eq 124 ]; then
+        # Timeout occurred
+        printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Timeout" "Timeout" "Timeout"
+        return 1
+    elif [ $exit_code -eq 0 ]; then
+        # Success
+        local dl_speed up_speed latency
+        dl_speed=$(awk '/Download/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        up_speed=$(awk '/Upload/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        latency=$(awk '/Latency/{print $3" "$4}' ./speedtest-cli/speedtest.log)
+        
+        if [[ -n "${dl_speed}" && -n "${up_speed}" && -n "${latency}" ]]; then
+            printf "\033[0;33m%-18s\033[0;32m%-18s\033[0;31m%-20s\033[0;36m%-12s\033[0m\n" " ${nodeName}" "${up_speed}" "${dl_speed}" "${latency}"
         else
-            ./speedtest-cli/speedtest --progress=no --server-id="$server_id" --accept-license --accept-gdpr >./speedtest-cli/speedtest.log 2>&1
+            printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Error" "Error" "Error"
         fi
-        
-        if [ $? -eq 0 ]; then
-            local dl_speed up_speed latency
-            dl_speed=$(awk '/Download/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-            up_speed=$(awk '/Upload/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-            latency=$(awk '/Latency/{print $3" "$4}' ./speedtest-cli/speedtest.log)
-            
-            if [[ -n "${dl_speed}" && -n "${up_speed}" && -n "${latency}" ]]; then
-                printf "\033[0;33m%-25s\033[0;32m%-18s\033[0;31m%-20s\033[0;36m%-12s\033[0m\n" " ${nodeName}" "${up_speed}" "${dl_speed}" "${latency}"
-                return 0
-            fi
-        fi
-        
-        retry=$((retry + 1))
-        [ $retry -lt $max_retries ] && _yellow "Retrying $nodeName...\n"
-    done
-    
-    _red " ${nodeName} - Test failed\n"
-    return 1
+    else
+        # Other error
+        printf "\033[0;33m%-18s\033[0;31m%-18s\033[0;31m%-20s\033[0;31m%-12s\033[0m\n" " ${nodeName}" "Failed" "Failed" "Failed"
+        return 1
+    fi
 }
 
 # Main speed test function
 speed() {
-    load_server_config
+    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
     
-    # Test default speedtest.net
-    speed_test "${SERVER_IDS[default]}" "${SERVER_NAMES[default]:-Speedtest.net Global}"
+    # Danh sách server được cập nhật tự động
+    declare -a servers=(
+        ":'Speedtest.net'"
+        "68864:'San Jose, US'"
+        "62493:'Orange France, FR'"
+        "28922:'Amsterdam, NL'"
+        "13538:'Hong Kong, CN'"
+        "7311:'Singapore, SG'"
+        "50467:'Tokyo, JP'"
+        "2515:'FPT HCM, VN'"
+        "2552:'FPT HN, VN'"
+        "17758:'VNPT HCM, VN'"
+        "17757:'VNPT HN, VN'"
+        "54812:'Viettel HCM, VN'"
+        "59915:'Viettel DN, VN'"
+    )
     
-    # Test configured servers
-    for region in us eu sg jp vn_fpt vn_vnpt vn_viettel; do
-        if [ -n "${SERVER_IDS[$region]}" ]; then
-            speed_test "${SERVER_IDS[$region]}" "${SERVER_NAMES[$region]}"
+    # Test từng server với timeout
+    for server in "${servers[@]}"; do
+        IFS=':' read -r server_id server_name <<< "$server"
+        
+        # Loại bỏ dấu nháy đầu và cuối
+        server_name=$(echo "$server_name" | sed "s/^'//;s/'$//")
+        
+        if [ -z "$server_id" ]; then
+            speed_test "" "$server_name"
+        else
+            speed_test "$server_id" "$server_name"
         fi
+        
+        # Thêm delay nhỏ giữa các test
+        sleep 0.5
     done
 }
 
