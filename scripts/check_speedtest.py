@@ -14,8 +14,11 @@ def fetch_first_id(provider):
         }, timeout=10)
         response.raise_for_status()
         servers = response.json()
-        if servers and "id" in servers[0]:
-            return str(servers[0]["id"])
+
+        for server in servers:
+            if "id" in server:
+                return str(server["id"])
+
     except Exception as e:
         print(f"[ERROR] Cannot fetch ID for '{provider}': {e}")
     return None
