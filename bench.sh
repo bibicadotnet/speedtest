@@ -75,18 +75,18 @@ speed_test() {
 
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '60075' 'San Jose, Costa Rica'
-    speed_test '53171' 'Poitiers, France'
-    speed_test '28922' 'Amsterdam, Netherlands'
-    speed_test '13538' 'Hong Kong, Hong Kong'
-    speed_test '31293' 'Singapore, Singapore'
-    speed_test '48463' 'Tokyo, Japan'
-    speed_test '2515' 'FPT HCM, VN'
-    speed_test '2552' 'FPT HN, VN'
-    speed_test '2222222' 'VNPT HCM, VN'
-    speed_test '17757' 'VNPT HN, VN'
-    speed_test '54812' 'Viettel HCM, VN'
-    speed_test '59915' 'Viettel DN, VN'
+    # speed_test '60075' 'San Jose, Costa Rica'  # no replacement found
+    # speed_test '53171' 'Poitiers, France'  # no replacement found
+    # speed_test '28922' 'Amsterdam, Netherlands'  # no replacement found
+    # speed_test '13538' 'Hong Kong, Hong Kong'  # no replacement found
+    # speed_test '31293' 'Singapore, Singapore'  # no replacement found
+    # speed_test '48463' 'Tokyo, Japan'  # no replacement found
+    # speed_test '2515' 'FPT HCM, VN'  # no replacement found
+    # speed_test '2552' 'FPT HN, VN'  # no replacement found
+    # speed_test '2222222' 'VNPT HCM, VN'  # no replacement found
+    # speed_test '17757' 'VNPT HN, VN'  # no replacement found
+    # speed_test '54812' 'Viettel HCM, VN'  # no replacement found
+    # speed_test '59915' 'Viettel DN, VN'  # no replacement found
 }
 
 io_test() {
