@@ -417,15 +417,215 @@ fi
 start_time=$(date +%s)
 get_system_info
 check_virt
+
+upload_results() {
+    local results_file="/tmp/benchmark_results_$$"
+    
+    # Capture all output to file
+    {
+        print_intro
+        next
+        print_system_info
+        ipv4_info
+        next
+        print_io_test
+        next
+        install_speedtest && speed && rm -fr speedtest-cli
+        next
+        print_end_time
+        next
+    } > "$results_file"
+    
+    # Encode results to base64
+    if _exists "base64"; then
+        local encoded_data
+        encoded_data=$(base64 -w 0 "$results_file" 2>/dev/null)
+        
+        # Check if encoding was successful and data isn't too long
+        if [[ -n "$encoded_data" && ${#encoded_data} -lt 8000 ]]; then
+            local benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
+            
+            echo
+            _green "Benchmark completed successfully!\n"
+            _yellow "📊 Your results: $benchmark_url\n"
+            echo "   Results saved permanently in the URL"
+            echo "   Share this link with anyone!"
+            
+            # Try to shorten URL with go.bibica.net if possible
+            if _exists "curl"; then
+                local short_response
+                short_response=$(curl -s -X POST -H "Content-Type: application/json" \
+                    -d "{\"url\":\"$benchmark_url\"}" \
+                    https://go.bibica.net/create 2>/dev/null)
+                
+                # Parse JSON response (simple extraction)
+                local short_url
+                short_url=$(echo "$short_response" | grep -o '"short_url":"[^"]*"' | cut -d'"' -f4 2>/dev/null)
+                
+                if [[ -n "$short_url" ]]; then
+                    echo
+                    _blue "🔗 Short URL: $short_url\n"
+                fi
+            fi
+            
+        else
+            _red "❌ Benchmark data too large or encoding failed.\n"
+            echo "   Please check your system or try again later."
+        fi
+    else
+        _red "❌ base64 command not found. Cannot generate shareable URL.\n"
+        echo "   Your benchmark completed but cannot be shared online."
+        
+        # Still show results locally
+        echo
+        cat "$results_file"
+    fi
+    
+    # Cleanup
+    rm -f "$results_file"
+}
+
+# Base64 encoding fallback for systems without base64 command
+base64_encode() {
+    local input_file="$1"
+    
+    # Try different base64 commands
+    if command -v base64 >/dev/null 2>&1; then
+        base64 -w 0 "$input_file" 2>/dev/null
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl base64 -in "$input_file" -A 2>/dev/null
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "import base64, sys; print(base64.b64encode(open('$input_file', 'rb').read()).decode())" 2>/dev/null
+    elif command -v python >/dev/null 2>&1; then
+        python -c "import base64, sys; print(base64.b64encode(open('$input_file', 'rb').read()).decode())" 2>/dev/null
+    else
+        return 1
+    fi
+}
+
+# Function để tạo slug ngẫu nhiên
+generate_slug() {
+    local length=${1:-6}
+    local chars="abcdefghijklmnopqrstuvwxyz0123456789"
+    local slug=""
+    for i in $(seq 1 $length); do
+        slug="${slug}${chars:RANDOM%${#chars}:1}"
+    done
+    echo "$slug"
+}
+
+# Function để loại bỏ ANSI color codes và ký tự đặc biệt
+strip_ansi() {
+    sed 's/\x1b\[[0-9;]*m//g' | \
+    sed 's/â //g' | \
+    sed 's/â //g' | \
+    sed 's/✓/[OK]/g' | \
+    sed 's/✗/[FAIL]/g' | \
+    tr -d '\r'
+}
+
+# Base64 encoding fallback for systems without base64 command
+base64_encode() {
+    local input_file="$1"
+    
+    # Try different base64 commands
+    if command -v base64 >/dev/null 2>&1; then
+        base64 -w 0 "$input_file" 2>/dev/null
+    elif command -v openssl >/dev/null 2>&1; then
+        openssl base64 -in "$input_file" -A 2>/dev/null
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 -c "import base64, sys; print(base64.b64encode(open('$input_file', 'rb').read()).decode())" 2>/dev/null
+    elif command -v python >/dev/null 2>&1; then
+        python -c "import base64, sys; print(base64.b64encode(open('$input_file', 'rb').read()).decode())" 2>/dev/null
+    else
+        return 1
+    fi
+}
+
+# Enhanced upload function
+upload_results_enhanced() {
+    local results_file="/tmp/benchmark_results_$$"
+    local results_clean="/tmp/benchmark_clean_$$"
+    
+    # Capture all output to file AND display on screen using tee
+    {
+        print_intro
+        next
+        print_system_info
+        ipv4_info
+        next
+        print_io_test
+        next
+        install_speedtest && speed && rm -fr speedtest-cli
+        next
+        print_end_time
+        next
+    } | tee "$results_file"
+    
+    # Strip ANSI codes for clean upload
+    strip_ansi < "$results_file" > "$results_clean"
+    
+    # Try to encode with fallback methods
+    local encoded_data
+    encoded_data=$(base64_encode "$results_clean")
+    
+    if [[ -n "$encoded_data" && ${#encoded_data} -lt 8000 ]]; then
+        # Generate random slug
+        local slug
+        slug=$(generate_slug 7)
+        
+        # Create benchmark URL for go.bibica.net
+        local benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
+        
+        # Upload to go.bibica.net directly
+        if _exists "curl"; then
+            local response
+            response=$(curl -s -X POST -H "Content-Type: application/json" \
+                -d "{\"url\":\"$benchmark_url\",\"slug\":\"$slug\"}" \
+                https://go.bibica.net/create 2>/dev/null)
+            
+            # Check if creation was successful - look for "link" field
+            if echo "$response" | grep -q '"link"' && echo "$response" | grep -q '"slug"'; then
+                # Extract the short URL from response
+                local short_url
+                short_url=$(echo "$response" | sed -n 's/.*"link":"\([^"]*\)".*/\1/p')
+                
+                if [[ -n "$short_url" ]]; then
+                    echo
+                    _green "Benchmark completed successfully!\n"
+                    _yellow "📊 Your results: $short_url\n"
+                    echo "   Results saved permanently and ready to share!"
+                else
+                    # Fallback if extraction fails
+                    local fallback_url="https://go.bibica.net/$slug"
+                    echo
+                    _green "Benchmark completed successfully!\n"
+                    _yellow "📊 Your results: $fallback_url\n"
+                    echo "   Results saved permanently and ready to share!"
+                fi
+            else
+                echo
+                _green "Benchmark completed successfully!\n"
+                _yellow "📊 Your results: $benchmark_url\n"
+                echo "   Results saved permanently in the URL"
+                _red "   (Short URL creation failed: $response)\n"
+            fi
+        else
+            echo
+            _green "Benchmark completed successfully!\n"
+            _yellow "📊 Your results: $benchmark_url\n"
+            echo "   Results saved permanently in the URL"
+            echo "   Share this link with anyone!"
+        fi
+        
+    else
+        _red "❌ Cannot generate shareable URL (data too large or encoding failed).\n"
+        echo "   Your benchmark results shown above."
+    fi
+    
+    # Cleanup
+    rm -f "$results_file" "$results_clean"
+}
+
 clear
-print_intro
-next
-print_system_info
-ipv4_info
-next
-print_io_test
-next
-install_speedtest && speed && rm -fr speedtest-cli
-next
-print_end_time
-next
+upload_results_enhanced
