@@ -156,142 +156,80 @@
             }
         }
 
-function formatTerminalOutput(data) {
-    // Process the raw terminal output to add proper coloring and formatting
-    let formatted = data;
-    
-    // Remove any stray $1 artifacts from processing
-    formatted = formatted.replace(/\$1/g, '');
-    
-    // Color patterns based on the original script colors from code
-    const colorRules = [
-        // Headers and titles
-        { pattern: /(-------------------- A Bench\.sh Script By Teddysun -------------------)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Version\s+:\s+)(v\d{4}-\d{2}-\d{2})/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
-        { pattern: /(Usage\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
-        
-        // System info labels (white color) and values (blue color from _blue function)
-        { pattern: /(CPU Model\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(CPU Cores\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(CPU Cache\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(AES-NI\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(VM-x\/AMD-V\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Total Disk\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Total Mem\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Total Swap\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(System uptime\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Load average\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(OS\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Arch\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Kernel\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(TCP CC\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Virtualization\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(IPv4\/IPv6\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Organization\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Location\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Region\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(I\/O Speed\([^)]+\)\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Finished in\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        { pattern: /(Timestamp\s+:)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        
-        // System values - using _blue color (#00ccff equivalent)
-        { pattern: /:\s+([^<\n\r]+CPU model not detected[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+@\s*[0-9.]+\s*MHz[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+[0-9]+\s*KB[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+days[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+load average[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+Linux[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+Bit[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+\d+\.\d+[^<\n\r]*kernel[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+Dedicated[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+KVM[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+OpenVZ[^<\n\r]*)/g, replacement: ': <span style="color: #00ccff;">$1</span>' },
-        
-        // _yellow color for disk/memory sizes and TCP CC
-        { pattern: /:\s+([^<\n\r]*[0-9.]+\s*[KMGT]B[^<\n\r]*)\s+\(/g, replacement: ': <span style="color: #ffff00;">$1</span> (' },
-        { pattern: /:\s+([^<\n\r]+bbr[^<\n\r]*)/g, replacement: ': <span style="color: #ffff00;">$1</span>' },
-        { pattern: /:\s+([^<\n\r]+cubic[^<\n\r]*)/g, replacement: ': <span style="color: #ffff00;">$1</span>' },
-        
-        // _blue color for used amounts in parentheses
-        { pattern: /\(([^)]+Used[^)]*)\)/g, replacement: '(<span style="color: #00ccff;">$1</span>)' },
-        
-        // _green color for enabled features
-        { pattern: /(✓\s*Enabled)/g, replacement: '<span style="color: #00ff00;">$1</span>' },
-        { pattern: /(\[OK\]\s*Enabled)/g, replacement: '<span style="color: #00ff00;">$1</span>' },
-        
-        // _red color for disabled features
-        { pattern: /(✗\s*Disabled)/g, replacement: '<span style="color: #ff0000;">$1</span>' },
-        { pattern: /(\[FAIL\]\s*Disabled)/g, replacement: '<span style="color: #ff0000;">$1</span>' },
-        
-        // _yellow color for I/O Speed values
-        { pattern: /:\s+([^<\n\r]*[0-9.]+\s*[MG]B\/s[^<\n\r]*)/g, replacement: ': <span style="color: #ffff00;">$1</span>' },
-        
-        // Online/Offline status
-        { pattern: /(✓\s*Online)/g, replacement: '<span style="color: #00ff00;">$1</span>' },
-        { pattern: /(✗\s*Offline)/g, replacement: '<span style="color: #ff0000;">$1</span>' },
-        { pattern: /(\[OK\]\s*Online)/g, replacement: '<span style="color: #00ff00;">$1</span>' },
-        { pattern: /(\[FAIL\]\s*Offline)/g, replacement: '<span style="color: #ff0000;">$1</span>' },
-        
-        // Speed test table header
-        { pattern: /(Node Name\s+Upload Speed\s+Download Speed\s+Latency)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
-        
-        // Separators
-        { pattern: /^-{50,}$/gm, replacement: '<span style="color: #666666;">$&</span>' }
-    ];
-    
-    // Apply color rules
-    colorRules.forEach(rule => {
-        if (rule.replacement) {
-            formatted = formatted.replace(rule.pattern, rule.replacement);
-        }
-    });
-    
-    // Handle speed test results with proper fixed-width formatting
-    formatted = formatted.replace(
-        /(\s+)([A-Za-z\s,.-]+?)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[a-z]+)/g,
-        function(match, indent, nodeName, uploadSpeed, downloadSpeed, latency) {
-            // Pad to match original printf format widths
-            const paddedNode = nodeName.padEnd(18);
-            const paddedUpload = uploadSpeed.padEnd(18);
-            const paddedDownload = downloadSpeed.padEnd(20);
-            const paddedLatency = latency.padEnd(12);
+        function formatTerminalOutput(data) {
+            // Process the raw terminal output to add proper coloring and formatting
+            let formatted = data;
             
-            return indent + 
-                   '<span style="color: #ffff00;">' + paddedNode + '</span>' +
-                   '<span style="color: #00ff00;">' + paddedUpload + '</span>' +
-                   '<span style="color: #ff0000;">' + paddedDownload + '</span>' +
-                   '<span style="color: #00ccff;">' + paddedLatency + '</span>';
-        }
-    );
-    
-    return formatted;
-}
+            // Color patterns based on the original script
+            const colorRules = [
+                // Headers and titles
+                { pattern: /(-------------------- A Bench\.sh Script By Teddysun -------------------)/g, color: '#ffffff' },
+                { pattern: /(Version\s+:\s+)(v\d{4}-\d{2}-\d{2})/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(Usage\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                
+                // System info labels and values
+                { pattern: /(CPU Model\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(CPU Cores\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(CPU Cache\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(AES-NI\s+:\s+)(\[OK\].*|✓.*)/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(AES-NI\s+:\s+)(\[FAIL\].*|✗.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                { pattern: /(VM-x\/AMD-V\s+:\s+)(\[OK\].*|✓.*)/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(VM-x\/AMD-V\s+:\s+)(\[FAIL\].*|✗.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                
+                // Disk, Memory, System info
+                { pattern: /(Total Disk\s+:\s+)([^(]+)(\(.*\))/g, replacement: '$1<span style="color: #ffff00;">$2</span><span style="color: #00ccff;">$3</span>' },
+                { pattern: /(Total Mem\s+:\s+)([^(]+)(\(.*\))/g, replacement: '$1<span style="color: #ffff00;">$2</span><span style="color: #00ccff;">$3</span>' },
+                { pattern: /(Total Swap\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(System uptime\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Load average\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(OS\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Arch\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Kernel\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(TCP CC\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                { pattern: /(Virtualization\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(IPv4\/IPv6\s+:\s+)(.*)/g, replacement: '$1$2' },
+                
+                // Organization and location info
+                { pattern: /(Organization\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Location\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Region\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                
+                // I/O Speed results
+                { pattern: /(I\/O Speed\([^)]+\)\s+:\s+)([0-9.]+ [A-Z]+\/s)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                
+                // Speed test table header
+                { pattern: /(Node Name\s+Upload Speed\s+Download Speed\s+Latency)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
+                
+                // Time and timestamp
+                { pattern: /(Finished in\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Timestamp\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                
+                // Separators
+                { pattern: /^-{50,}$/gm, color: '#666666' }
+            ];
             
             // Apply color rules
             colorRules.forEach(rule => {
                 if (rule.replacement) {
                     formatted = formatted.replace(rule.pattern, rule.replacement);
+                } else if (rule.color) {
+                    formatted = formatted.replace(rule.pattern, `<span style="color: ${rule.color};">$1</span>`);
                 }
             });
             
-            // Handle speed test results with proper fixed-width formatting
-            // The original script uses printf with specific widths: %-18s%-18s%-20s%-12s
+            // Handle speed test results with proper spacing and coloring
             formatted = formatted.replace(
-                /(\s+)([A-Za-z\s,.-]+?)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[a-z]+)/g,
-                function(match, indent, nodeName, uploadSpeed, downloadSpeed, latency) {
-                    // Pad to match original printf format widths
-                    const paddedNode = nodeName.padEnd(18);
-                    const paddedUpload = uploadSpeed.padEnd(18);
-                    const paddedDownload = downloadSpeed.padEnd(20);
-                    const paddedLatency = latency.padEnd(12);
-                    
-                    return indent + 
-                           '<span style="color: #ffff00;">' + paddedNode + '</span>' +
-                           '<span style="color: #00ff00;">' + paddedUpload + '</span>' +
-                           '<span style="color: #ff0000;">' + paddedDownload + '</span>' +
-                           '<span style="color: #00ccff;">' + paddedLatency + '</span>';
-                }
+                /(\s+)([A-Za-z\s,]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[a-z]+)/g,
+                '$1<span style="color: #ffff00;">$2</span><span style="color: #00ff00;">$3</span><span style="color: #ff0000;">$4</span><span style="color: #00ccff;">$5</span>'
             );
+            
+            // Handle [OK] and [FAIL] markers
+            formatted = formatted.replace(/\[OK\]/g, '<span style="color: #00ff00;">[OK]</span>');
+            formatted = formatted.replace(/\[FAIL\]/g, '<span style="color: #ff0000;">[FAIL]</span>');
+            
+            // Handle checkmarks and X marks
+            formatted = formatted.replace(/✓/g, '<span style="color: #00ff00;">✓</span>');
+            formatted = formatted.replace(/✗/g, '<span style="color: #ff0000;">✗</span>');
             
             return formatted;
         }
