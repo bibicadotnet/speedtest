@@ -116,6 +116,35 @@
             .welcome h1 { font-size: 2em; }
             .command-box { font-size: 14px; padding: 15px; }
         }
+        .speed-table {
+            margin: 20px 0;
+            border-collapse: collapse;
+            width: 100%;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .speed-table th,
+        .speed-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        
+        .speed-table th {
+            background: #222;
+            color: #00ffff;
+            font-weight: bold;
+        }
+        
+        .speed-table tr:hover {
+            background: #1a1a1a;
+        }
+        
+        .speed-section {
+            margin: 20px 0;
+        }        
     </style>
 </head>
 <body>
@@ -124,6 +153,73 @@
     </div>
 
     <script>
+        function parseSpeedTestData(text) {
+            const lines = text.split('\n');
+            let speedSectionStarted = false;
+            let speedLines = [];
+            
+            for (let line of lines) {
+                // Detect speed test section
+                if (line.includes('Node Name') && line.includes('Upload Speed') && line.includes('Download Speed')) {
+                    speedSectionStarted = true;
+                    continue;
+                }
+                
+                // Stop at next section (usually indicated by dashes or new section)
+                if (speedSectionStarted && line.match(/^-+$|^\s*$/)) {
+                    if (speedLines.length > 0) break;
+                    continue;
+                }
+                
+                // Collect speed test lines
+                if (speedSectionStarted && line.trim() && !line.match(/^-+$/)) {
+                    speedLines.push(line);
+                }
+            }
+            
+            return speedLines;
+        }
+        
+        function formatSpeedTestTable(speedLines) {
+            if (speedLines.length === 0) return '';
+            
+            let html = `
+                <div class="speed-section">
+                    <table class="speed-table">
+                        <thead>
+                            <tr>
+                                <th>Node Name</th>
+                                <th>Upload Speed</th>
+                                <th>Download Speed</th>
+                                <th>Latency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            speedLines.forEach(line => {
+                // Parse each line (adjust regex based on your actual format)
+                const match = line.match(/^\s*(.+?)\s+(\d+\.?\d*\s*\w+\/s)\s+(\d+\.?\d*\s*\w+\/s)\s+(\d+\.?\d*\s*ms)/);
+                if (match) {
+                    html += `
+                        <tr>
+                            <td>${match[1].trim()}</td>
+                            <td>${match[2]}</td>
+                            <td>${match[3]}</td>
+                            <td>${match[4]}</td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            return html;
+        }        
         function decodeData() {
             try {
                 const hash = window.location.hash.substring(1);
@@ -139,6 +235,19 @@
         }
 
         function renderBenchmark(data) {
+            const speedLines = parseSpeedTestData(data);
+            const speedTable = formatSpeedTestTable(speedLines);
+            
+            // Remove speed test raw data from main display
+            let cleanData = data;
+            if (speedLines.length > 0) {
+                speedLines.forEach(line => {
+                    cleanData = cleanData.replace(line, '');
+                });
+                // Also remove the header line
+                cleanData = cleanData.replace(/Node Name\s+Upload Speed\s+Download Speed\s+Latency/, '');
+            }
+            
             return `
                 <div class="header">
                     <h1>🚀 VPS Benchmark Results</h1>
@@ -148,7 +257,8 @@
                         <button class="share-btn" onclick="downloadResults()">💾 Download</button>
                     </div>
                 </div>
-                <div class="benchmark-data">${escapeHtml(data)}</div>
+                <div class="benchmark-data">${escapeHtml(cleanData)}</div>
+                ${speedTable}
                 <div class="footer">
                     <p>Results permanently saved • <a href="https://benchmark.bibica.net/" target="_blank">Run your own test</a></p>
                 </div>
