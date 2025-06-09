@@ -166,16 +166,7 @@
 
         function formatTerminalOutput(data) {
             // Process the raw terminal output to add proper coloring and formatting
-            let formatted = data;
-
-            // Remove any stray $1 artifacts from processing
-            formatted = formatted.replace(/\$1/g, '');
-            document.getElementById('output').innerHTML = formatted;
-            document.querySelectorAll('span').forEach(el => {
-              if (el.textContent.trim() === '') {
-                el.remove();
-              }
-            });          
+            let formatted = data;    
             
             // Color patterns based on the original script
             const colorRules = [
