@@ -252,10 +252,13 @@ install_speedtest() {
 print_intro() {
     local title="-------------------- A Bench.sh Script By Teddysun -------------------"
     local center="Automatically updating Node location"
+    local usage="Usage: wget -qO- https://bibica.net/speedtest | bash"
+    
     echo "$title"
     printf "%*s\n" $(( (${#title} + ${#center}) / 2 )) "$center"
-    echo " Usage: $(_red "wget -qO- https://bibica.net/speedtest | bash")"
+    printf "%*s\n" $(( (${#title} + ${#usage}) / 2 )) "$(_red "$usage")"
 }
+
 
 # Get System information
 get_system_info() {
