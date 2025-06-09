@@ -7,57 +7,57 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Courier New', monospace; 
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); 
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace; 
+            background: #000000; 
             color: #00ff00; 
             padding: 20px; 
-            line-height: 1.6; 
+            line-height: 1.4; 
             min-height: 100vh;
+            font-size: 14px;
         }
-        .container { 
+        .terminal-container { 
             max-width: 1200px; 
             margin: 0 auto; 
-            background: rgba(26,26,26,0.9); 
-            padding: 30px; 
-            border-radius: 15px; 
-            border: 1px solid #333; 
-            box-shadow: 0 10px 30px rgba(0,255,0,0.1);
-            backdrop-filter: blur(10px);
+            background: #000000; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border: 2px solid #333; 
+            box-shadow: 0 0 20px rgba(0,255,0,0.2);
         }
-        .header { 
-            text-align: center; 
-            margin-bottom: 30px; 
-            color: #00ffff; 
+        .terminal-header {
+            background: #333;
+            color: #fff;
+            padding: 8px 15px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 6px 6px 0 0;
+            font-size: 12px;
+            border-bottom: 1px solid #555;
         }
-        .header h1 { 
-            font-size: 2.5em; 
-            margin-bottom: 10px; 
-            text-shadow: 0 0 10px #00ffff;
+        .terminal-header .buttons {
+            float: left;
         }
-        .benchmark-data { 
-            background: #000; 
-            padding: 25px; 
-            border-radius: 10px; 
-            overflow-x: auto; 
-            border: 1px solid #333; 
-            white-space: pre-line;
-            font-size: 14px;
-            line-height: 1.4;
+        .terminal-header .button {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
         }
-        .footer { 
-            text-align: center; 
-            margin-top: 30px; 
-            color: #888; 
-            font-size: 14px; 
+        .terminal-header .button.close { background: #ff5f57; }
+        .terminal-header .button.minimize { background: #ffbd2e; }
+        .terminal-header .button.maximize { background: #28ca42; }
+        .terminal-header .title {
+            text-align: center;
+            font-weight: bold;
         }
-        .footer a { 
-            color: #00ffff; 
-            text-decoration: none; 
-            transition: all 0.3s;
-        }
-        .footer a:hover { 
-            text-decoration: underline; 
-            text-shadow: 0 0 5px #00ffff;
+        .benchmark-output { 
+            background: #000000; 
+            color: #00ff00;
+            white-space: pre;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
         }
         .welcome { 
             text-align: center; 
@@ -67,6 +67,7 @@
             font-size: 3em; 
             margin-bottom: 20px; 
             text-shadow: 0 0 20px #00ff00;
+            color: #00ff00;
         }
         .welcome .subtitle { 
             font-size: 1.2em; 
@@ -74,52 +75,70 @@
             margin-bottom: 30px;
         }
         .command-box { 
-            background: #000; 
-            padding: 20px; 
-            border-radius: 10px; 
+            background: #111; 
+            padding: 15px; 
+            border-radius: 5px; 
             margin: 30px 0; 
             color: #00ffff; 
-            font-size: 16px; 
+            font-size: 14px; 
             border: 1px solid #333;
             text-align: center;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
         }
         .error { 
             background: #2a0000; 
             border: 1px solid #ff0000; 
             color: #ff6666; 
             padding: 20px; 
-            border-radius: 10px; 
+            border-radius: 8px; 
             text-align: center;
+        }
+        .share-buttons {
+            text-align: center;
+            margin: 20px 0;
         }
         .share-btn {
             background: #00ffff;
             color: #000;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 8px 16px;
+            border-radius: 4px;
             cursor: pointer;
             font-family: inherit;
             font-weight: bold;
-            margin: 10px 5px;
+            margin: 5px;
             transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
         }
         .share-btn:hover {
             background: #00ff00;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,255,255,0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0,255,255,0.3);
+        }
+        .footer { 
+            text-align: center; 
+            margin-top: 30px; 
+            color: #666; 
+            font-size: 12px; 
+        }
+        .footer a { 
+            color: #00ffff; 
+            text-decoration: none; 
+        }
+        .footer a:hover { 
+            text-decoration: underline; 
         }
         @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 20px; }
-            .benchmark-data { padding: 15px; font-size: 12px; }
-            .header h1 { font-size: 2em; }
+            body { padding: 10px; font-size: 12px; }
+            .terminal-container { padding: 15px; }
+            .benchmark-output { font-size: 11px; }
             .welcome h1 { font-size: 2em; }
-            .command-box { font-size: 14px; padding: 15px; }
         }
     </style>
 </head>
 <body>
-    <div class="container" id="container">
+    <div class="terminal-container" id="container">
         <!-- Content will be loaded here -->
     </div>
 
@@ -129,7 +148,6 @@
                 const hash = window.location.hash.substring(1);
                 if (!hash) return null;
                 
-                // Decode base64
                 const decoded = atob(hash);
                 return decoded;
             } catch (e) {
@@ -138,17 +156,102 @@
             }
         }
 
+        function formatTerminalOutput(data) {
+            // Process the raw terminal output to add proper coloring and formatting
+            let formatted = data;
+            
+            // Color patterns based on the original script
+            const colorRules = [
+                // Headers and titles
+                { pattern: /(-------------------- A Bench\.sh Script By Teddysun -------------------)/g, color: '#ffffff' },
+                { pattern: /(Version\s+:\s+)(v\d{4}-\d{2}-\d{2})/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(Usage\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                
+                // System info labels and values
+                { pattern: /(CPU Model\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(CPU Cores\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(CPU Cache\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(AES-NI\s+:\s+)(\[OK\].*|✓.*)/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(AES-NI\s+:\s+)(\[FAIL\].*|✗.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                { pattern: /(VM-x\/AMD-V\s+:\s+)(\[OK\].*|✓.*)/g, replacement: '$1<span style="color: #00ff00;">$2</span>' },
+                { pattern: /(VM-x\/AMD-V\s+:\s+)(\[FAIL\].*|✗.*)/g, replacement: '$1<span style="color: #ff0000;">$2</span>' },
+                
+                // Disk, Memory, System info
+                { pattern: /(Total Disk\s+:\s+)([^(]+)(\(.*\))/g, replacement: '$1<span style="color: #ffff00;">$2</span><span style="color: #00ccff;">$3</span>' },
+                { pattern: /(Total Mem\s+:\s+)([^(]+)(\(.*\))/g, replacement: '$1<span style="color: #ffff00;">$2</span><span style="color: #00ccff;">$3</span>' },
+                { pattern: /(Total Swap\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(System uptime\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Load average\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(OS\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Arch\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Kernel\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(TCP CC\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                { pattern: /(Virtualization\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(IPv4\/IPv6\s+:\s+)(.*)/g, replacement: '$1$2' },
+                
+                // Organization and location info
+                { pattern: /(Organization\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Location\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Region\s+:\s+)(.*)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                
+                // I/O Speed results
+                { pattern: /(I\/O Speed\([^)]+\)\s+:\s+)([0-9.]+ [A-Z]+\/s)/g, replacement: '$1<span style="color: #ffff00;">$2</span>' },
+                
+                // Speed test table header
+                { pattern: /(Node Name\s+Upload Speed\s+Download Speed\s+Latency)/g, replacement: '<span style="color: #ffffff;">$1</span>' },
+                
+                // Time and timestamp
+                { pattern: /(Finished in\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                { pattern: /(Timestamp\s+:\s+)(.*)/g, replacement: '$1<span style="color: #00ccff;">$2</span>' },
+                
+                // Separators
+                { pattern: /^-{50,}$/gm, color: '#666666' }
+            ];
+            
+            // Apply color rules
+            colorRules.forEach(rule => {
+                if (rule.replacement) {
+                    formatted = formatted.replace(rule.pattern, rule.replacement);
+                } else if (rule.color) {
+                    formatted = formatted.replace(rule.pattern, `<span style="color: ${rule.color};">$1</span>`);
+                }
+            });
+            
+            // Handle speed test results with proper spacing and coloring
+            formatted = formatted.replace(
+                /(\s+)([A-Za-z\s,]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[A-Za-z\/]+)\s+([0-9.]+\s+[a-z]+)/g,
+                '$1<span style="color: #ffff00;">$2</span><span style="color: #00ff00;">$3</span><span style="color: #ff0000;">$4</span><span style="color: #00ccff;">$5</span>'
+            );
+            
+            // Handle [OK] and [FAIL] markers
+            formatted = formatted.replace(/\[OK\]/g, '<span style="color: #00ff00;">[OK]</span>');
+            formatted = formatted.replace(/\[FAIL\]/g, '<span style="color: #ff0000;">[FAIL]</span>');
+            
+            // Handle checkmarks and X marks
+            formatted = formatted.replace(/✓/g, '<span style="color: #00ff00;">✓</span>');
+            formatted = formatted.replace(/✗/g, '<span style="color: #ff0000;">✗</span>');
+            
+            return formatted;
+        }
+
         function renderBenchmark(data) {
+            const formattedOutput = formatTerminalOutput(data);
+            
             return `
-                <div class="header">
-                    <h1>🚀 VPS Benchmark Results</h1>
-                    <p>Generated by Teddysun Bench Script</p>
-                    <div style="margin-top: 15px;">
-                        <button class="share-btn" onclick="copyToClipboard()">📋 Copy Link</button>
-                        <button class="share-btn" onclick="downloadResults()">💾 Download</button>
+                <div class="terminal-header">
+                    <div class="buttons">
+                        <span class="button close"></span>
+                        <span class="button minimize"></span>
+                        <span class="button maximize"></span>
                     </div>
+                    <div class="title">VPS Benchmark Results - Terminal</div>
+                    <div style="clear: both;"></div>
                 </div>
-                <div class="benchmark-data">${escapeHtml(data)}</div>
+                <div class="share-buttons">
+                    <button class="share-btn" onclick="copyToClipboard()">📋 Copy Link</button>
+                    <button class="share-btn" onclick="downloadResults()">💾 Download</button>
+                </div>
+                <div class="benchmark-output">${formattedOutput}</div>
                 <div class="footer">
                     <p>Results permanently saved • <a href="https://benchmark.bibica.net/" target="_blank">Run your own test</a></p>
                 </div>
@@ -185,17 +288,10 @@
             `;
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         function copyToClipboard() {
             navigator.clipboard.writeText(window.location.href).then(() => {
                 alert('✅ Link copied to clipboard!');
             }).catch(() => {
-                // Fallback for older browsers
                 const textArea = document.createElement('textarea');
                 textArea.value = window.location.href;
                 document.body.appendChild(textArea);
@@ -221,30 +317,23 @@
             }
         }
 
-        // Main execution
         function init() {
             const container = document.getElementById('container');
             const data = decodeData();
             
             if (data === null) {
-                // No hash, show welcome page
                 container.innerHTML = renderWelcome();
                 document.title = 'VPS Benchmark - Performance Testing Tool';
             } else if (data === false) {
-                // Invalid data
                 container.innerHTML = renderError();
                 document.title = 'Error - VPS Benchmark';
             } else {
-                // Valid data, show results
                 container.innerHTML = renderBenchmark(data);
                 document.title = 'Benchmark Results - VPS Performance';
             }
         }
 
-        // Initialize on load
         init();
-
-        // Handle hash changes (back/forward navigation)
         window.addEventListener('hashchange', init);
     </script>
 </body>
