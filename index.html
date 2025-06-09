@@ -159,6 +159,9 @@
         function formatTerminalOutput(data) {
             // Process the raw terminal output to add proper coloring and formatting
             let formatted = data;
+
+            // Remove any stray $1 artifacts from processing
+            formatted = formatted.replace(/\$1/g, '');            
             
             // Color patterns based on the original script
             const colorRules = [
