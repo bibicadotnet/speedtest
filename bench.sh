@@ -250,8 +250,9 @@ install_speedtest() {
 
 print_intro() {
     echo "-------------------- A Bench.sh Script By Teddysun -------------------"
-    echo " Version            : $(_green v2025-05-08)"
+    echo "              Automatically updating Node location"
     echo " Usage              : $(_red "wget -qO- https://bibica.net/speedtest | bash")"
+
 }
 
 # Get System information
