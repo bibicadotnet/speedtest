@@ -6,7 +6,8 @@
 # Thanks: LookBack <admin@dwhd.org>
 # URL: https://teddysun.com/444.html
 # https://github.com/teddysun/across/blob/master/bench.sh
-#
+# Automatically updating Node location
+
 trap _exit INT QUIT TERM
 
 _red() {
@@ -249,10 +250,11 @@ install_speedtest() {
 }
 
 print_intro() {
-    echo "-------------------- A Bench.sh Script By Teddysun -------------------"
-    echo "              Automatically updating Node location"
+    local title="-------------------- A Bench.sh Script By Teddysun -------------------"
+    local center="Automatically updating Node location"
+    echo "$title"
+    printf "%*s\n" $(( (${#title} + ${#center}) / 2 )) "$center"
     echo " Usage: $(_red "wget -qO- https://bibica.net/speedtest | bash")"
-
 }
 
 # Get System information
