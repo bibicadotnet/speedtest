@@ -7,6 +7,7 @@
 # URL: https://teddysun.com/444.html
 # https://github.com/teddysun/across/blob/master/bench.sh
 # Automatically updating Node location
+
 clear
 trap _exit INT QUIT TERM
 
