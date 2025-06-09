@@ -43,7 +43,7 @@ _exists() {
 _exit() {
     _red "\nThe script has been terminated. Cleaning up files...\n"
     # clean up
-    rm -fr speedtest.tgz speedtest-cli benchtest_*
+    rm -rf speedtest.tgz speedtest-cli benchtest_* /tmp/benchmark_* /tmp/speedtest*
     exit 1
 }
 
