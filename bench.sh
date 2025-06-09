@@ -251,7 +251,7 @@ install_speedtest() {
 print_intro() {
     echo "-------------------- A Bench.sh Script By Teddysun -------------------"
     echo "              Automatically updating Node location"
-    echo " Usage              : $(_red "wget -qO- https://bibica.net/speedtest | bash")"
+    echo " Usage: $(_red "wget -qO- https://bibica.net/speedtest | bash")"
 
 }
 
