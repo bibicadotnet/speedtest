@@ -250,26 +250,11 @@ install_speedtest() {
     printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
 }
 
-_red() {
-    echo -e "\033[31m$1\033[0m"
-}
-
 print_intro() {
-    local title="-------------------- A Bench.sh Script By Teddysun -------------------"
-    local center="Automatically updating Node location"
-    local usage_label="Usage:"
-    local usage_cmd="wget -qO- https://go.bibica.net/speedtest | bash"
-    
-    echo "$title"
-    printf "%*s\n" $(( (${#title} + ${#center}) / 2 )) "$center"
-    local usage_full="$usage_label $usage_cmd"
-    local total_width=${#title}
-    local usage_len=${#usage_full}
-    local padding=$(( (total_width - usage_len) / 2 ))
-    printf "%*s%s %s\n" $padding "" "$usage_label" "$(_red "$usage_cmd")"
+    echo "-------------------- A Bench.sh Script By Teddysun -------------------"
+    echo " Version            : $(_green v2025-05-08)"
+    echo " Usage              : $(_red "wget -qO- https://go.bibica.net/speedtest | bash")"
 }
-
-
 
 # Get System information
 get_system_info() {
