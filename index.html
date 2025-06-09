@@ -135,10 +135,7 @@
             .benchmark-output { font-size: 11px; }
             .welcome h1 { font-size: 2em; }
         }
-        span:empty {
-          display: none;
-        }
-        
+   
     </style>
 </head>
 <body>
@@ -147,6 +144,11 @@
     </div>
 
     <script>
+
+        function replaceDollarWithSpace(html) {
+          return html.replace(/<span style="color: #666666;">\$1<\/span>/g, '<span style="color: #666666;">&nbsp;</span>');
+        }
+        
         function decodeData() {
             try {
                 const hash = window.location.hash.substring(1);
@@ -165,7 +167,13 @@
             let formatted = data;
 
             // Remove any stray $1 artifacts from processing
-            formatted = formatted.replace(/\$1/g, '');            
+            formatted = formatted.replace(/\$1/g, '');
+            document.getElementById('output').innerHTML = formatted;
+            document.querySelectorAll('span').forEach(el => {
+              if (el.textContent.trim() === '') {
+                el.remove();
+              }
+            });          
             
             // Color patterns based on the original script
             const colorRules = [
