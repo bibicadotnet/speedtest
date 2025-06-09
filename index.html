@@ -116,36 +116,6 @@
             .welcome h1 { font-size: 2em; }
             .command-box { font-size: 14px; padding: 15px; }
         }
-        .benchmark-table {
-            width: 100%;
-            margin: 20px 0;
-            border-collapse: collapse;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        
-        .benchmark-table pre {
-            white-space: pre;
-            overflow-x: auto;
-            margin: 0;
-            line-height: 1.4;
-        }
-        
-        .benchmark-data table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-        }
-        
-        .benchmark-data table td, .benchmark-data table th {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #333;
-        }
-        
-        .benchmark-data table tr:hover {
-            background: rgba(0, 255, 255, 0.05);
-        }
     </style>
 </head>
 <body>
@@ -169,9 +139,6 @@
         }
 
         function renderBenchmark(data) {
-            // Chuyển đổi dữ liệu dạng bảng sang HTML table
-            const formattedData = formatBenchmarkData(data);
-            
             return `
                 <div class="header">
                     <h1>🚀 VPS Benchmark Results</h1>
@@ -181,52 +148,12 @@
                         <button class="share-btn" onclick="downloadResults()">💾 Download</button>
                     </div>
                 </div>
-                ${formattedData}
+                <div class="benchmark-data">${escapeHtml(data)}</div>
                 <div class="footer">
-                    <p>Results permanently saved • <a href="https://benchmark.bibica.net" target="_blank">Run your own test</a></p>
+                    <p>Results permanently saved • <a href="https://benchmark.bibica.net/" target="_blank">Run your own test</a></p>
                 </div>
             `;
         }
-
-        function formatBenchmarkData(rawData) {
-            // Nếu dữ liệu có dạng bảng với |
-            if (rawData.includes('|')) {
-                const lines = rawData.split('\n');
-                let html = '<div class="benchmark-data"><table>';
-                
-                lines.forEach(line => {
-                    if (line.trim() === '') return;
-                    
-                    // Xử lý dòng header
-                    if (line.includes('Node Name') || line.includes('-----')) {
-                        if (line.includes('Node Name')) {
-                            html += '<thead><tr>';
-                            line.split('|').forEach(cell => {
-                                if (cell.trim() !== '') {
-                                    html += `<th>${cell.trim()}</th>`;
-                                }
-                            });
-                            html += '</tr></thead><tbody>';
-                        }
-                    } else {
-                        // Xử lý dòng dữ liệu
-                        html += '<tr>';
-                        line.split('|').forEach(cell => {
-                            if (cell.trim() !== '') {
-                                html += `<td>${cell.trim()}</td>`;
-                            }
-                        });
-                        html += '</tr>';
-                    }
-                });
-                
-                html += '</tbody></table></div>';
-                return html;
-            }
-            
-            // Fallback: hiển thị dạng pre nếu không phải bảng
-            return `<div class="benchmark-data"><pre>${escapeHtml(rawData)}</pre></div>`;
-        }        
 
         function renderWelcome() {
             return `
