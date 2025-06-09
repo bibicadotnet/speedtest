@@ -64,3 +64,4 @@ speed() {
     speed_test '9903' 'Viettel, VN'
 }
 ```
+Phần README này ghi lại với mục đích nhớ là chính, không có ý nghĩa gì với người đọc hé 😇
