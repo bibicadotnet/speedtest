@@ -311,20 +311,25 @@
             });
         }
 
-        function downloadResults() {
-            const data = decodeData();
-            if (data) {
-                const blob = new Blob([data], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `benchmark-${new Date().toISOString().split('T')[0]}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+            function downloadResults() {
+                const data = decodeData();
+                if (data) {
+                    // Xử lý dữ liệu giống như trên màn hình nhưng không có HTML tags
+                    let processedData = processAnsiCodes(data);
+                    // Loại bỏ các HTML tags
+                    processedData = processedData.replace(/<[^>]*>/g, '');
+                    
+                    const blob = new Blob([processedData], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `benchmark-${new Date().toISOString().split('T')[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
             }
-        }
 
         // Main execution
         function init() {
