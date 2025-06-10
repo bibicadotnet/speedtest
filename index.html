@@ -175,19 +175,10 @@
         }
         
 function processAnsiCodes(text) {
-    const lines = text.split('\n');
-    const processedLines = lines.map(line => {
-        // Chỉ xử lý dòng speedtest results
-        // Pattern: Node name + Upload speed + Download speed + Latency
-        if (line.match(/^\s+\w.*\s+\d+\.?\d*\s*\w+\/s\s+\d+\.?\d*\s*\w+\/s\s+\d+\.?\d*\s*ms/)) {
-            return line.replace(
-                /^(\s+)([^0-9]+?)(\s+)(\d+\.?\d*\s*\w+\/s)(\s+)(\d+\.?\d*\s*\w+\/s)(\s+)(\d+\.?\d*\s*ms)/,
-                '$1<span style="color: #ffff00;">$2</span>$3<span style="color: #00ff00;">$4</span>$5<span style="color: #ff0000;">$6</span>$7<span style="color: #00ffff;">$8</span>'
-            );
-        }
-        return line; // Các dòng khác giữ nguyên
-    });
-    return processedLines.join('\n');
+    return text.replace(
+        /^(\s+)([A-Za-z\s,.-]+?)(\s{2,})(\d+\.?\d*\s*\w+\/s)(\s{2,})(\d+\.?\d*\s*\w+\/s)(\s{2,})(\d+\.?\d*\s*ms)/gm,
+        '$1<span style="color: #ffff00;">$2</span>$3<span style="color: #00ff00;">$4</span>$5<span style="color: #ff0000;">$6</span>$7<span style="color: #00ffff;">$8</span>'
+    );
 }
 
         function renderWelcome() {
