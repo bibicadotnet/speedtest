@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Optimized Bench Script by Teddysun - Compressed Version
+# Optimized Bench Script by Teddysun
 # Copyright (C) 2015 - 2025 Teddysun <i@teddysun.com>
 
 clear
-trap '_red "\nScript terminated. Cleaning up...\n"; rm -rf speedtest.tgz speedtest-cli benchtest_* /tmp/benchmark_* /tmp/speedtest*; exit 1' INT QUIT TERM
+rm -rf speedtest.tgz speedtest-cli benchtest_* ./*.log ./speedtest.log /tmp/benchmark_* /tmp/speedtest* /tmp/iperf* 2>/dev/null
+trap '_red "Script terminated. Cleaning up..."; rm -rf speedtest.tgz speedtest-cli benchtest_* ./*.log ./speedtest.log /tmp/benchmark_* /tmp/speedtest* /tmp/iperf*; exit 1' INT QUIT TERM
 
 # Color functions
 _red() { printf '\033[0;31;31m%b\033[0m' "$1"; }
@@ -251,12 +252,6 @@ base64_encode() {
     else return 1; fi
 }
 
-generate_slug() {
-    local chars="abcdefghijklmnopqrstuvwxyz0123456789" slug=""
-    for i in $(seq 1 ${1:-6}); do slug="${slug}${chars:RANDOM%${#chars}:1}"; done
-    echo "$slug"
-}
-
 # Strip ANSI and special characters
 strip_ansi() {
     sed 's/\x1b\[[0-9;]*m//g' | sed 's/â //g' | sed 's/â //g' | sed 's/✓/[OK]/g' | sed 's/✗/[FAIL]/g' | tr -d '\r'
@@ -265,7 +260,7 @@ strip_ansi() {
 upload_results() {
     local results_file="/tmp/benchmark_results_$$" results_clean="/tmp/benchmark_clean_$$"
     
-    # Capture output and display on screen
+    # Capture and display benchmark output
     {
         print_intro; next; print_system_info; ipv4_info; next; print_io_test; next
         install_speedtest && speed && rm -fr speedtest-cli
@@ -275,59 +270,38 @@ upload_results() {
     # Create clean version for upload
     strip_ansi < "$results_file" > "$results_clean"
     
-    local encoded_data response slug benchmark_url success
+    local encoded_data response benchmark_url
     encoded_data=$(base64_encode "$results_clean")
     
     if [[ -n "$encoded_data" && ${#encoded_data} -lt 50000 ]]; then
-        
-        # Try to upload to new API endpoint
+        # Try API upload
         if _exists "curl"; then
-            _yellow "Uploading results...\n"
-            
             response=$(curl -s -X POST \
                 -H "Content-Type: application/json" \
                 -H "User-Agent: BenchScript/2.0" \
-                --connect-timeout 10 \
-                --max-time 30 \
+                --connect-timeout 10 --max-time 30 \
                 -d "{\"data\":\"$encoded_data\"}" \
                 https://benchmark.bibica.net/api/upload 2>/dev/null)
             
-            # Parse response
             if echo "$response" | grep -q '"success":true' && echo "$response" | grep -q '"url"'; then
-                slug=$(echo "$response" | sed -n 's/.*"slug":"\([^"]*\)".*/\1/p')
                 benchmark_url=$(echo "$response" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
-                success=true
-            elif echo "$response" | grep -q '"error"'; then
-                local error_msg=$(echo "$response" | sed -n 's/.*"error":"\([^"]*\)".*/\1/p')
-                _yellow "API Error: $error_msg\n"
             fi
         fi
         
+        # Fallback method if API failed or curl not available
+        [[ -z "$benchmark_url" ]] && benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
+        
+        _yellow "Benchmark completed"
         echo
-        _green "✅ Benchmark completed\n"
-        
-        if [ "$success" = true ] && [ -n "$benchmark_url" ]; then
-            _green "📊 Results URL: $benchmark_url\n"
-            echo "   ✓ Ready to share - Copy button available on page"
-        else
-            # Fallback to hash-based method
-            benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
-            _yellow "📊 Fallback URL: $benchmark_url\n"
-            echo "   ⚠ Using fallback method - Results available but URL will be long"
-        fi
-        
+        echo -n "Ready to share " && _blue "$benchmark_url"
     else
-        _red "❌ Cannot generate shareable URL\n"
-        if [[ ${#encoded_data} -ge 50000 ]]; then
-            echo "   Reason: Results too large (${#encoded_data} chars)"
-        else
-            echo "   Reason: Encoding failed"
-        fi
-        echo "   Your benchmark results are shown above."
+        echo
+        _red "Cannot generate shareable URL - Results too large or encoding failed"
     fi
     
+	echo
     # Cleanup
-    rm -f "$results_file" "$results_clean" /tmp/speedtest_clean_$$
+    rm -rf speedtest-cli benchtest_* ./*.log ./speedtest.log /tmp/benchmark_* /tmp/speedtest* 2>/dev/null
 }
 
 # Main execution
