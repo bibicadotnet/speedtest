@@ -98,7 +98,34 @@
             color: #00ffff; 
             font-size: 16px; 
             border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .command-text {
+            flex: 1;
+            min-width: 300px;
             text-align: center;
+        }
+        .copy-command-btn {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .copy-command-btn:hover {
+            background: #00ffff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,255,0,0.3);
         }
         .error { 
             background: #2a0000; 
@@ -131,7 +158,15 @@
             .benchmark-data { padding: 15px; font-size: 12px; }
             .header h1 { font-size: 2em; }
             .welcome h1 { font-size: 2em; }
-            .command-box { font-size: 14px; padding: 15px; }
+            .command-box { 
+                font-size: 14px; 
+                padding: 15px; 
+                flex-direction: column;
+                gap: 10px;
+            }
+            .command-text {
+                min-width: auto;
+            }
         }
     </style>
 </head>
@@ -266,17 +301,49 @@
             return lines.join('\n');
         }
 
+        function copyCommand() {
+            const command = 'wget -qO- https://benchmark.bibica.net | bash';
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = document.querySelector('.copy-command-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#00ff00';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#00ff00';
+                }, 2000);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = 'wget -qO- https://benchmark.bibica.net | bash';
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const btn = document.querySelector('.copy-command-btn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = '#00ff00';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#00ff00';
+                }, 2000);
+            });
+        }
+
         function renderWelcome() {
             return `
                 <div class="welcome">
                     <h1>🚀 VPS Benchmark</h1>
                     <p class="subtitle">Comprehensive VPS Performance Testing</p>
                     <div class="command-box">
-                        wget -qO- https://go.bibica.net/speedtest | bash
+                        <div class="command-text">wget -qO- https://benchmark.bibica.net | bash</div>
+                        <button class="copy-command-btn" onclick="copyCommand()">📋 Copy</button>
                     </div>
                     <p>Your results will be encoded in the URL and available permanently</p>
                     <div style="margin-top: 30px;">
-                        <a href="https://go.bibica.net/speedtest" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
+                        <a href="https://raw.githubusercontent.com/bibicadotnet/speedtest/main/bench.sh" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
                             📖 View Script Source
                         </a>
                     </div>
@@ -311,25 +378,25 @@
             });
         }
 
-            function downloadResults() {
-                const data = decodeData();
-                if (data) {
-                    // Xử lý dữ liệu giống như trên màn hình nhưng không có HTML tags
-                    let processedData = processAnsiCodes(data);
-                    // Loại bỏ các HTML tags
-                    processedData = processedData.replace(/<[^>]*>/g, '');
-                    
-                    const blob = new Blob([processedData], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `benchmark-${new Date().toISOString().split('T')[0]}.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
+        function downloadResults() {
+            const data = decodeData();
+            if (data) {
+                // Xử lý dữ liệu giống như trên màn hình nhưng không có HTML tags
+                let processedData = processAnsiCodes(data);
+                // Loại bỏ các HTML tags
+                processedData = processedData.replace(/<[^>]*>/g, '');
+                
+                const blob = new Blob([processedData], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `benchmark-${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
+        }
 
         // Main execution
         function init() {
