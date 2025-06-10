@@ -196,12 +196,6 @@ function processAnsiCodes(text) {
         .replace(/(Total Mem\s*:\s*)([^(]+)/g, '$1<span style="color: #ffff00;">$2</span>')
         .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
         
-        // Green/Red cho status - SỬA ĐỂ TRÁNH TRÙNG LẶP
-        .replace(/\[OK\]/g, '<span style="color: #00ff00;">✓ Enabled</span>')
-        .replace(/\[FAIL\]/g, '<span style="color: #ff0000;">✗ Disabled</span>')
-        .replace(/✓ Online/g, '<span style="color: #00ff00;">✓ Online</span>')
-        .replace(/✗ Offline/g, '<span style="color: #ff0000;">✗ Offline</span>')
-        
         // I/O Speed - Yellow
         .replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
         
@@ -210,16 +204,25 @@ function processAnsiCodes(text) {
         .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
         .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
         
-        // THÊM MỚI: Speed test table colors
-        // Node names (yellow), Upload (green), Download (red), Latency (cyan)
-        .replace(/(\s+Speedtest\.net)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+ms)/g,
-            '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>')
-        .replace(/(\s+[A-Za-z\s,\.]+(?:US|FR|DE|HK|SG|JP|VN))\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+ms)/g, 
+        // Speed test header
+        .replace(/(Node Name)\s+(Upload Speed)\s+(Download Speed)\s+(Latency)/g,
             '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>')
         
-        // THÊM MỚI: Speed test header
-        .replace(/(Node Name)\s+(Upload Speed)\s+(Download Speed)\s+(Latency)/g,
-            '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>');
+        // Speed test results - Xử lý từng dòng riêng biệt
+        .replace(/(\s+)(Speedtest\.net|Los Angeles, US|Paris, FR|Berlin, DE|Hong Kong, HK|Singapore, SG|Tokyo, JP|FPT Telecom, VN|VNPT-NET, VN|Viettel, VN)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+ms)/g,
+            '$1<span style="color: #ffff00;">$2</span> <span style="color: #00ff00;">$3</span> <span style="color: #ff0000;">$4</span> <span style="color: #00ffff;">$5</span>')
+        
+        // Green/Red cho status - XỬ LÝ SAU CÙNG ĐỂ TRÁNH XUNG ĐỘT
+        .replace(/\[OK\]/g, '<span style="color: #00ff00;">✓ Enabled</span>')
+        .replace(/\[FAIL\]/g, '<span style="color: #ff0000;">✗ Disabled</span>')
+        
+        // Xử lý Online/Offline - Cần cẩn thận với pattern
+        .replace(/(AES-NI\s*:\s*)<span style="color: #00ff00;">✓ Enabled<\/span>/g, '$1<span style="color: #00ff00;">✓ Enabled</span>')
+        .replace(/(VM-x\/AMD-V\s*:\s*)<span style="color: #ff0000;">✗ Disabled<\/span>/g, '$1<span style="color: #ff0000;">✗ Disabled</span>')
+        .replace(/(IPv4\/IPv6\s*:\s*)(.+)/g, function(match, label, status) {
+            return label + status.replace(/✓ Online/g, '<span style="color: #00ff00;">✓ Online</span>')
+                                .replace(/✗ Offline/g, '<span style="color: #ff0000;">✗ Offline</span>');
+        });
 }
 
         function renderWelcome() {
