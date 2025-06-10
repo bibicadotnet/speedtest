@@ -84,7 +84,7 @@ speed() {
     speed_test '13623' 'Singapore, SG'
     speed_test '48463' 'Tokyo, JP'
     speed_test '67826' 'FPT Telecom, VN'
-    speed_test '45493' 'VNPT-NET, VN'
+    speed_test '17757' 'VNPT-NET, VN'
     speed_test '9903' 'Viettel, VN'
 }
 
