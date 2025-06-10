@@ -176,11 +176,39 @@
         
 function processAnsiCodes(text) {
     return text
-        .replace(/\033\[0;31;31m/g, '<span style="color: #ff0000;">')
-        .replace(/\033\[0;31;32m/g, '<span style="color: #00ff00;">')
-        .replace(/\033\[0;31;33m/g, '<span style="color: #ffff00;">')
-        .replace(/\033\[0;31;36m/g, '<span style="color: #00ffff;">')
-        .replace(/\033\[0m/g, '</span>');
+        // Phần header
+        .replace(/(Version\s*:\s*)(.+)/g, '$1<span style="color: #00ff00;">$2</span>')
+        .replace(/(Usage\s*:\s*)(.+)/g, '$1<span style="color: #ff0000;">$2</span>')
+        
+        // System info - Blue color
+        .replace(/(CPU Model\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(CPU Cores\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(CPU Cache\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(System uptime\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Load average\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(OS\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Arch\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Kernel\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Virtualization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        
+        // Yellow color cho disk/memory/TCP
+        .replace(/(Total Disk\s*:\s*)([^(]+)/g, '$1<span style="color: #ffff00;">$2</span>')
+        .replace(/(Total Mem\s*:\s*)([^(]+)/g, '$1<span style="color: #ffff00;">$2</span>')
+        .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
+        
+        // Green/Red cho status
+        .replace(/(\[OK\])/g, '<span style="color: #00ff00;">✓ Enabled</span>')
+        .replace(/(\[FAIL\])/g, '<span style="color: #ff0000;">✗ Disabled</span>')
+        .replace(/(Online)/g, '<span style="color: #00ff00;">✓ Online</span>')
+        .replace(/(Offline)/g, '<span style="color: #ff0000;">✗ Offline</span>')
+        
+        // I/O Speed - Yellow
+        .replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
+        
+        // Organization/Location - Blue/Yellow
+        .replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+        .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
 }
 
         function renderWelcome() {
