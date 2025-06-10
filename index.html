@@ -209,6 +209,14 @@ function processAnsiCodes(text) {
         .replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
         .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
         .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
+       
+        // Speedtest results - xử lý từng dòng kết quả
+        .replace(/^(\s+)([A-Za-z\s,\.]+)(\s+)([0-9\.]+\s+[A-Za-z/]+)(\s+)([0-9\.]+\s+[A-Za-z/]+)(\s+)([0-9\.]+\s+[A-Za-z]+)$/gm, 
+            '$1<span style="color: #ffff00;">$2</span>$3<span style="color: #00ff00;">$4</span>$5<span style="color: #ff0000;">$6</span>$7<span style="color: #00ffff;">$8</span>')
+        
+        // Header của bảng speedtest
+        .replace(/(Node Name\s+Upload Speed\s+Download Speed\s+Latency)/g, 
+            '<span style="color: #ffffff; font-weight: bold;">$1</span>')    
 }
 
         function renderWelcome() {
