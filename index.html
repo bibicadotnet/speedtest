@@ -142,7 +142,27 @@
     </div>
 
     <script>
-        
+        async function init() {
+  const container = document.getElementById('container');
+  const slug = window.location.pathname.slice(1);
+  
+  if (!slug) {
+    container.innerHTML = renderWelcome();
+    document.title = 'VPS Benchmark - Performance Testing Tool';
+    return;
+  }
+  
+  const data = await decodeData();
+  if (data === false) {
+    container.innerHTML = renderError();
+    document.title = 'Error - VPS Benchmark';
+  } else {
+    container.innerHTML = renderBenchmark(data);
+    document.title = 'Benchmark Results - VPS Performance';
+  }
+}
+window.addEventListener('DOMContentLoaded', init);
+
         function base64urlToUint8Array(str) {
             const padding = '='.repeat((4 - (str.length % 4)) % 4);
             const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
