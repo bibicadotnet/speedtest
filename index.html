@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
     <title>VPS Benchmark Results</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -142,52 +141,19 @@
     </div>
 
     <script>
-        async function init() {
-  const container = document.getElementById('container');
-  const slug = window.location.pathname.slice(1);
-  
-  if (!slug) {
-    container.innerHTML = renderWelcome();
-    document.title = 'VPS Benchmark - Performance Testing Tool';
-    return;
-  }
-  
-  const data = await decodeData();
-  if (data === false) {
-    container.innerHTML = renderError();
-    document.title = 'Error - VPS Benchmark';
-  } else {
-    container.innerHTML = renderBenchmark(data);
-    document.title = 'Benchmark Results - VPS Performance';
-  }
-}
-window.addEventListener('DOMContentLoaded', init);
-
-        function base64urlToUint8Array(str) {
-            const padding = '='.repeat((4 - (str.length % 4)) % 4);
-            const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
-            const binary = atob(base64);
-            return Uint8Array.from([...binary].map(c => c.charCodeAt(0)));
+        function decodeData() {
+            try {
+                const hash = window.location.hash.substring(1);
+                if (!hash) return null;
+                
+                // Decode base64
+                const decoded = atob(hash);
+                return decoded;
+            } catch (e) {
+                console.error('Failed to decode data:', e);
+                return false;
+            }
         }
-        
-async function decodeData() {
-  const slug = window.location.pathname.slice(1);
-  if (!slug) return null;
-  try {
-    if (slug.length > 100) {
-      // giải nén trực tiếp
-    } else {
-      const res = await fetch(`/api/get/${slug}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      const compressed = base64urlToUint8Array(json.data);
-      return new TextDecoder().decode(pako.ungzip(compressed));
-    }
-  } catch (e) {
-    console.error("Decode error:", e);
-    return false;
-  }
-}
 
         function renderBenchmark(data) {
             const processedData = processAnsiCodes(data);
@@ -331,13 +297,12 @@ async function decodeData() {
         }
 
         function copyToClipboard() {
-            const shortUrl = window.location.origin + window.location.pathname;
-            navigator.clipboard.writeText(shortUrl).then(() => {
+            navigator.clipboard.writeText(window.location.href).then(() => {
                 alert('✅ Link copied to clipboard!');
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = shortUrl;
+                textArea.value = window.location.href;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
