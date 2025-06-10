@@ -104,7 +104,9 @@ Bước cài đặt tổng thể là như thế, nếu bạn nào fork dự án 
 
 Link sau khi chạy benchmark sẽ có dạng [slug 8 kí tự](https://benchmark.bibica.net/6676f187), như sau `https://benchmark.bibica.net/6676f187`
 
-- Công đoạn xử lý dữ liệu thô gửi lên Cloudflae Page khá be bét, không rõ có cách nào xử lý tốt hơn không, trước khi gửi dữ liệu lên, phải làm sạch 1 lần, nhận được dữ liệu, phải phải thêm màu sắc vào cho giống khi chạy ở màn hình ban đầu 
+- Công đoạn xử lý dữ liệu thô gửi lên Cloudflae Page khá be bét, không rõ có cách nào xử lý tốt hơn không, trước khi gửi dữ liệu lên, phải làm sạch 1 lần, nhận được dữ liệu, phải phải thêm màu sắc vào cho giống khi chạy ở màn hình ban đầu
+
+Quản lý thủ công kiểu này hơi chua, nếu sau tác giả teddysun cập nhập thêm các tính năng mới, cần sửa lại giao diện web chạy theo
 
 # Kết luận
 
