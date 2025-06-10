@@ -155,20 +155,29 @@ async function decodeData() {
     if (!slug) return null;
 
     try {
+        // Nếu slug dài (đã nén) thì decode trực tiếp
+        if (slug.length > 100) {
+            const compressed = base64urlToUint8Array(slug);
+            const decompressed = new TextDecoder().decode(pako.ungzip(compressed));
+            return decompressed;
+        }
+
+        // Nếu slug ngắn, gọi từ D1
         const res = await fetch(`/api/get/${slug}`);
-        if (!res.ok) throw new Error("Not found");
+        if (!res.ok) throw new Error("Slug not found in DB");
 
         const json = await res.json();
-        if (!json.data) throw new Error("Invalid");
+        if (!json.data) throw new Error("Empty data from DB");
 
         const compressed = base64urlToUint8Array(json.data);
         const decompressed = new TextDecoder().decode(pako.ungzip(compressed));
         return decompressed;
     } catch (e) {
-        console.error('Failed to load slug from API:', e);
+        console.error("Failed to decode data:", e);
         return false;
     }
 }
+
 
 
         function renderBenchmark(data) {
