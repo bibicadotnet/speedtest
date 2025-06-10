@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
     <title>VPS Benchmark Results</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -141,16 +142,24 @@
     </div>
 
     <script>
+        
+        function base64urlToUint8Array(str) {
+            const padding = '='.repeat((4 - (str.length % 4)) % 4);
+            const base64 = (str + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const binary = atob(base64);
+            return Uint8Array.from([...binary].map(c => c.charCodeAt(0)));
+        }
+        
         function decodeData() {
+            const slug = window.location.pathname.slice(1);
+            if (!slug) return null;
+        
             try {
-                const hash = window.location.hash.substring(1);
-                if (!hash) return null;
-                
-                // Decode base64
-                const decoded = atob(hash);
-                return decoded;
+                const compressed = base64urlToUint8Array(slug);
+                const decompressed = new TextDecoder().decode(pako.ungzip(compressed));
+                return decompressed;
             } catch (e) {
-                console.error('Failed to decode data:', e);
+                console.error('Failed to decode slug:', e);
                 return false;
             }
         }
@@ -297,12 +306,13 @@
         }
 
         function copyToClipboard() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
+            const shortUrl = window.location.origin + window.location.pathname;
+            navigator.clipboard.writeText(shortUrl).then(() => {
                 alert('✅ Link copied to clipboard!');
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = window.location.href;
+                textArea.value = shortUrl;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
