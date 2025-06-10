@@ -1,13 +1,20 @@
 # speedtest
 
-Giới thiệu ngắn gọn thì nó là 1 bash script kiểm tra tốc độ và các thông tin cấu hình của VPS, được viết ra bởi [teddysun](https://teddysun.com/444.html)
-
-Tác giả viết cho trang bench.sh, mình chỉ bổ xung các location Việt Nam thêm vào, còn lại như bản gốc
+Giới thiệu ngắn gọn `benchmark.bibica.net` là 1 bash script kiểm tra tốc độ và các thông tin cấu hình của VPS, được viết ra bởi [teddysun](https://teddysun.com/444.html). sử dụng đơn giản thì chạy lệnh bên dưới
 
 ```
-wget -qO- https://go.bibica.net/speedtest | bash
+wget -qO- https://benchmark.bibica.net | bash
 ```
-Dùng cũng 2-3 năm nay, mà thi thoảng location Việt Nam, các cụ VNPT, FPT, Viettel đổi ID xoành xoạch, vào check cứ thấy sập, sửa thủ công thì mệt như bò đá, nên bổ xung thêm tính năng tự cập nhập lại ID
+
+Tác giả viết từ 2015, sau này dùng cho trang `bench.sh`, mà ảnh xài check toàn mấy location China, ở Việt Nam check thì hơi thừa, nên mình sửa thành location Việt Nam thêm vào, còn lại như bản gốc
+
+Cá nhân, mình nghĩ nên thêm vào kết quả `Geekbench` như `yabs.sh` đang dùng để xem hiệu năng CPU, thêm cả phần kernel `TCP/IP` stack nữa thì bài benchmark sẽ tương đối đầy đủ số liệu
+
+Có điều nếu thêm hết vào, chạy 1 bài test, có khi mất 15-20 phút, quá dài so với nhu cầu thông thường
+
+# Tự động thay đổi locaiton
+
+- Dùng cũng 2-3 năm nay, mà thi thoảng location Việt Nam, các cụ VNPT, FPT, Viettel đổi ID xoành xoạch, vào check cứ thấy sập, sửa thủ công thì mệt như bò đá, nên bổ xung thêm tính năng tự cập nhập lại ID, tránh các tình huống này
 
 Logic xử lý khá là củ chuối 😅 nôm na speedtest có hỗ trợ API qua đường link:
 ```
@@ -53,15 +60,50 @@ Cách này được thêm 1 cái khá tiện, chỉ cần giữ phần `speed_te
 ```
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '14236' 'Los Angeles, US'
-    speed_test '61933' 'Paris, FR'
-    speed_test '49516' 'Berlin, DE'
-    speed_test '63143' 'Hong Kong, HK'
-    speed_test '13623' 'Singapore, SG'
-    speed_test '48463' 'Tokyo, JP'
-    speed_test '67826' 'FPT Telecom, VN'
-    speed_test '17757' 'VNPT-NET, VN'
-    speed_test '9903' 'Viettel, VN'
+    speed_test '14236' 'Los Angeles, US'; speed_test '61933' 'Paris, FR'; speed_test '49516' 'Berlin, DE'
+    speed_test '63143' 'Hong Kong, HK'; speed_test '13623' 'Singapore, SG'; speed_test '48463' 'Tokyo, JP'
+    speed_test '67826' 'FPT Telecom, VN'; speed_test '45493' 'VNPT-NET, VN'; speed_test '9903' 'Viettel, VN'
 }
 ```
-Phần README này ghi lại với mục đích nhớ là chính, không có ý nghĩa gì với người đọc hé 😇
+# Lưu kết quả lên Cloudflae Page
+
+Y tưởng ban đầu là decode base64 data từ URL hash, tạo ra 1 URL không cần database, gần như sống mãi theo hệ thống của Cloudflare, vì Cloudflare Page miễn phi 100%
+
+Vấn đề phát sinh là cái URL này nó quá là dài, ít cũng hơn 1000 kí tự, dài thì gần 4000 kí tự, khi chia sẽ URL khá phiền
+
+Tính toán 1 hồi thì vẫn thấy chạy qua database D1, 1 bài test, chỉ tạo ra 1 dòng, cho ghi miễn phí 100.000 dòng mỗi 24h, gần như dùng không hết hạn ngạch này
+
+### Cài đặt
+
+Tạo 1 databse D1 với tên tùy ý, sang tab `Console` chạy tuần tự 3 dòng code bên dưới
+```
+-- schema.sql
+CREATE TABLE IF NOT EXISTS benchmarks (
+    slug TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    accessed_count INTEGER DEFAULT 0,
+    last_accessed TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index cho performance
+CREATE INDEX IF NOT EXISTS idx_created_at ON benchmarks(created_at);
+CREATE INDEX IF NOT EXISTS idx_last_accessed ON benchmarks(last_accessed);
+```
+Đẩy dự án sang Cloudflare Page
+
+Settings -> Bindings -> Add -> D1 database
+```
+| **Type**    | **Name** | **Value**            |
+| ----------- | -------- | -------------------- |
+| D1 database | DB       | benchmark-bibica-net |
+```
+Chú ý duy nhất giá trị Variable name là `DB`, database thì nãy tạo ra là gì thì giờ chọn nó là được
+
+Bước cài đặt tổng thể là như thế
+
+Nếu bạn nào fork dự án về thì sửa `benchmark.bibica.net` thành tên trang Cloudflare Page bạn dùng là được
+
+# Kết luận
+
+Phần README này ghi lại với mục đích nhớ là chính, trừ bạn nào fork dự án cần đọc qua, còn lại không có ý nghĩa gì với người đọc hé 😇
