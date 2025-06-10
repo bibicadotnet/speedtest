@@ -1,4 +1,3 @@
-// functions/api/upload.js
 export async function onRequestPost(context) {
     const { request, env } = context;
     
