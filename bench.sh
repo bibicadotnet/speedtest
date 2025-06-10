@@ -293,7 +293,7 @@ upload_results() {
         
         _yellow "Benchmark completed"
         echo
-        echo -n "Ready to share " && _blue "$benchmark_url"
+        echo -n "Short URL: " && _blue "$benchmark_url"
     else
         echo
         _red "Cannot generate shareable URL - Results too large or encoding failed"
