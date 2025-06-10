@@ -175,10 +175,10 @@
         }
         
         function processAnsiCodes(text) {
-            // Đầu tiên, xử lý các kí tự đặc biệt đã được strip
+            // Xử lý đầu tiên, xử lý các kí tự đặc biệt đã được strip
             text = text
-                .replace(/\[OK\]/g, '✓ Enabled')
-                .replace(/\[FAIL\]/g, '✗ Disabled');
+                .replace(/\[OK\]/g, '✓')
+                .replace(/\[FAIL\]/g, '✗');
 
             // Xử lý header section
             text = text.replace(/(Version\s*:\s*)(.+)/g, '$1<span style="color: #00ff00;">$2</span>')
@@ -207,11 +207,10 @@
                        .replace(/(VM-x\/AMD-V\s*:\s*)(✓ Enabled)/g, '$1<span style="color: #00ff00;">$2</span>')
                        .replace(/(VM-x\/AMD-V\s*:\s*)(✗ Disabled)/g, '$1<span style="color: #ff0000;">$2</span>');
 
-            // IPv4/IPv6 status - xử lý cả Online và Offline
+            // IPv4/IPv6 status - xử lý cả Online và Offline  
             text = text.replace(/(IPv4\/IPv6\s*:\s*)(.+)/g, function(match, prefix, status) {
-                // Tách các phần Online/Offline
-                let processedStatus = status.replace(/(✓ Online)/g, '<span style="color: #00ff00;">$1</span>')
-                                           .replace(/(✗ Offline)/g, '<span style="color: #ff0000;">$1</span>');
+                let processedStatus = status.replace(/✓ Online/g, '<span style="color: #00ff00;">✓ Online</span>')
+                                           .replace(/✗ Offline/g, '<span style="color: #ff0000;">✗ Offline</span>');
                 return prefix + processedStatus;
             });
 
