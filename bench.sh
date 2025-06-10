@@ -50,7 +50,7 @@ speed() {
     speed_test '' 'Speedtest.net'
     speed_test '14236' 'Los Angeles, US'; speed_test '61933' 'Paris, FR'; speed_test '49516' 'Berlin, DE'
     speed_test '63143' 'Hong Kong, HK'; speed_test '13623' 'Singapore, SG'; speed_test '48463' 'Tokyo, JP'
-    speed_test '67826' 'FPT Telecom, VN'; speed_test '45493' 'VNPT-NET, VN'; speed_test '9903' 'Viettel, VN'
+    speed_test '67826' 'FPT Telecom, VN'; speed_test '17757' 'VNPT-NET, VN'; speed_test '9903' 'Viettel, VN'
 }
 
 # I/O test
@@ -139,7 +139,7 @@ install_speedtest() {
 print_intro() {
     echo "-------------------- A Bench.sh Script By Teddysun -------------------"
     echo " Version            : $(_green v2025-05-08)"
-    echo " Usage              : $(_red "wget -qO- https://go.bibica.net/speedtest | bash")"
+    echo " Usage              : $(_red "wget -qO- https://benchmark.bibica.net | bash")"
 }
 
 # Get system info
@@ -262,7 +262,6 @@ strip_ansi() {
     sed 's/\x1b\[[0-9;]*m//g' | sed 's/â //g' | sed 's/â //g' | sed 's/✓/[OK]/g' | sed 's/✗/[FAIL]/g' | tr -d '\r'
 }
 
-# Main upload function
 upload_results() {
     local results_file="/tmp/benchmark_results_$$" results_clean="/tmp/benchmark_clean_$$"
     
@@ -270,40 +269,64 @@ upload_results() {
     {
         print_intro; next; print_system_info; ipv4_info; next; print_io_test; next
         install_speedtest && speed && rm -fr speedtest-cli
-        # Insert clean speedtest results
         next; print_end_time; next
     } | tee "$results_file"
     
     # Create clean version for upload
     strip_ansi < "$results_file" > "$results_clean"
     
-    local encoded_data
+    local encoded_data response slug benchmark_url success
     encoded_data=$(base64_encode "$results_clean")
     
-    if [[ -n "$encoded_data" && ${#encoded_data} -lt 8000 ]]; then
-        local slug benchmark_url response short_url
-        slug=$(generate_slug 7)
-        benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
+    if [[ -n "$encoded_data" && ${#encoded_data} -lt 50000 ]]; then
         
+        # Try to upload to new API endpoint
         if _exists "curl"; then
-            response=$(curl -s -X POST -H "Content-Type: application/json" -d "{\"url\":\"$benchmark_url\",\"slug\":\"$slug\"}" https://go.bibica.net/create 2>/dev/null)
+            _yellow "Uploading results...\n"
             
-            if echo "$response" | grep -q '"link"' && echo "$response" | grep -q '"slug"'; then
-                short_url=$(echo "$response" | sed -n 's/.*"link":"\([^"]*\)".*/\1/p')
-                [[ -z "$short_url" ]] && short_url="https://go.bibica.net/$slug"
+            response=$(curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -H "User-Agent: BenchScript/2.0" \
+                --connect-timeout 10 \
+                --max-time 30 \
+                -d "{\"data\":\"$encoded_data\"}" \
+                https://benchmark.bibica.net/api/upload 2>/dev/null)
+            
+            # Parse response
+            if echo "$response" | grep -q '"success":true' && echo "$response" | grep -q '"url"'; then
+                slug=$(echo "$response" | sed -n 's/.*"slug":"\([^"]*\)".*/\1/p')
+                benchmark_url=$(echo "$response" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
+                success=true
+            elif echo "$response" | grep -q '"error"'; then
+                local error_msg=$(echo "$response" | sed -n 's/.*"error":"\([^"]*\)".*/\1/p')
+                _yellow "API Error: $error_msg\n"
             fi
         fi
         
-			echo
-			_green "Benchmark completed\n"
-			[ -n "$short_url" ] && _yellow "Short shareable URL: $short_url\n" || _yellow "Full results URL: $benchmark_url\n"
-			echo "   Permanently stored - Ready to share"
+        echo
+        _green "✅ Benchmark completed\n"
+        
+        if [ "$success" = true ] && [ -n "$benchmark_url" ]; then
+            _green "📊 Results URL: $benchmark_url\n"
+            echo "   ✓ Ready to share - Copy button available on page"
+        else
+            # Fallback to hash-based method
+            benchmark_url="https://benchmark.bibica.net/#${encoded_data}"
+            _yellow "📊 Fallback URL: $benchmark_url\n"
+            echo "   ⚠ Using fallback method - Results available but URL will be long"
+        fi
         
     else
-        _red "❌ Cannot generate shareable URL (data too large or encoding failed).\n"
-        echo "   Your benchmark results shown above."
+        _red "❌ Cannot generate shareable URL\n"
+        if [[ ${#encoded_data} -ge 50000 ]]; then
+            echo "   Reason: Results too large (${#encoded_data} chars)"
+        else
+            echo "   Reason: Encoding failed"
+        fi
+        echo "   Your benchmark results are shown above."
     fi
     
+    # Cleanup
     rm -f "$results_file" "$results_clean" /tmp/speedtest_clean_$$
 }
 
