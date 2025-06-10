@@ -175,6 +175,17 @@
         }
         
 function processAnsiCodes(text) {
+    // Xóa các trạng thái trùng lặp
+    text = text
+        .replace(/✓ Enabled Enabled/g, '✓ Enabled')
+        .replace(/✗ Disabled Disabled/g, '✗ Disabled')
+        .replace(/✓ Online ✓ Online/g, '✓ Online')
+        .replace(/✗ Offline ✗ Offline/g, '✗ Offline');
+
+    // Xử lý các dòng speedtest
+    text = text.replace(/(\s{1,})([^\s]+)(\s{2,})([^\s]+\s[^\s]+)(\s{2,})([^\s]+\s[^\s]+)(\s{2,})([^\s]+\s[^\s]+)/g, 
+        '$1<span style="color: #ffff00;">$2</span>$3<span style="color: #00ff00;">$4</span>$5<span style="color: #ff0000;">$6</span>$7<span style="color: #00ffff;">$8</span>');
+
     return text
         // Phần header
         .replace(/(Version\s*:\s*)(.+)/g, '$1<span style="color: #00ff00;">$2</span>')
