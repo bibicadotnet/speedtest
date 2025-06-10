@@ -306,7 +306,7 @@
         }
 
         function copyCommand() {
-            const command = 'wget -qO- https://go.bibica.net/speedtest | bash';
+            const command = 'wget -qO- https://benchmark.bibica.net | bash';
             navigator.clipboard.writeText(command).then(() => {
                 const btn = document.querySelector('.copy-command-btn');
                 const originalText = btn.textContent;
@@ -319,7 +319,7 @@
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = 'wget -qO- https://go.bibica.net/speedtest | bash';
+                textArea.value = 'wget -qO- https://benchmark.bibica.net | bash';
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -347,7 +347,7 @@
                     </div>
                     <p>Your results will be stored permanently with a clean, shareable URL</p>
                     <div style="margin-top: 30px;">
-                        <a href="https://go.bibica.net/speedtest" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
+                        <a href="https://benchmark.bibica.net" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
                             📖 View Script Source
                         </a>
                     </div>
