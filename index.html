@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPS Benchmark Results</title>
+    <title>VPS Benchmark - Performance Testing</title>
+    <meta name="description" content="VPS server performance benchmark results including CPU, memory, disk I/O and network speed tests.">
+    
+    <!-- Open Graph cho social sharing -->
+    <meta property="og:title" content="VPS Benchmark Tool">
+    <meta property="og:description" content="Comprehensive VPS performance testing results">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://benchmark.bibica.net">
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -46,21 +54,6 @@
             font-family: 'Courier New', monospace;
             color: #ffffff;
         }
-        /* Màu sắc giống script bash */
-        .benchmark-data .yellow { color: #ffff00; }
-        .benchmark-data .green { color: #00ff00; }
-        .benchmark-data .red { color: #ff0000; }
-        .benchmark-data .blue { color: #00ffff; }
-        
-        /* Định dạng cho bảng speedtest */
-        .benchmark-data .speed-header {
-            display: block;
-            margin: 10px 0;
-        }
-        .benchmark-data .speed-row {
-            display: block;
-            font-family: 'Courier New', monospace;
-        }      
         .footer { 
             text-align: center; 
             margin-top: 30px; 
@@ -176,16 +169,27 @@
     </div>
 
     <script>
+        // Server data có thể được inject bởi Cloudflare Function
+        const serverData = null;
+        
         function decodeData() {
+            // Ưu tiên server data (từ database)
+            if (serverData && serverData !== null) {
+                try {
+                    return atob(serverData);
+                } catch (e) {
+                    console.error('Failed to decode server data:', e);
+                    return false;
+                }
+            }
+            
+            // Fallback cho hash-based URLs (backward compatibility)
             try {
                 const hash = window.location.hash.substring(1);
                 if (!hash) return null;
-                
-                // Decode base64
-                const decoded = atob(hash);
-                return decoded;
+                return atob(hash);
             } catch (e) {
-                console.error('Failed to decode data:', e);
+                console.error('Failed to decode hash data:', e);
                 return false;
             }
         }
@@ -302,7 +306,7 @@
         }
 
         function copyCommand() {
-            const command = 'wget -qO- https://benchmark.bibica.net | bash';
+            const command = 'wget -qO- https://go.bibica.net/speedtest | bash';
             navigator.clipboard.writeText(command).then(() => {
                 const btn = document.querySelector('.copy-command-btn');
                 const originalText = btn.textContent;
@@ -315,7 +319,7 @@
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = 'wget -qO- https://benchmark.bibica.net | bash';
+                textArea.value = 'wget -qO- https://go.bibica.net/speedtest | bash';
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -341,9 +345,9 @@
                         <div class="command-text">wget -qO- https://benchmark.bibica.net | bash</div>
                         <button class="copy-command-btn" onclick="copyCommand()">📋 Copy</button>
                     </div>
-                    <p>Your results will be encoded in the URL and available permanently</p>
+                    <p>Your results will be stored permanently with a clean, shareable URL</p>
                     <div style="margin-top: 30px;">
-                        <a href="https://raw.githubusercontent.com/bibicadotnet/speedtest/main/bench.sh" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
+                        <a href="https://go.bibica.net/speedtest" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
                             📖 View Script Source
                         </a>
                     </div>
@@ -354,22 +358,24 @@
         function renderError() {
             return `
                 <div class="error">
-                    <h2>❌ Invalid Data</h2>
-                    <p>The benchmark data in the URL appears to be corrupted or invalid.</p>
+                    <h2>❌ Results Not Found</h2>
+                    <p>The benchmark results could not be found or have expired.</p>
                     <p style="margin-top: 15px;">
-                        <a href="https://benchmark.bibica.net" style="color: #ff6666;">← Go back to homepage</a>
+                        <a href="https://benchmark.bibica.net" style="color: #ff6666;">← Go back to run a new test</a>
                     </p>
                 </div>
             `;
         }
 
         function copyToClipboard() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
+            // Clean URL without hash for sharing
+            const urlToCopy = window.location.href.split('#')[0];
+            navigator.clipboard.writeText(urlToCopy).then(() => {
                 alert('✅ Link copied to clipboard!');
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
-                textArea.value = window.location.href;
+                textArea.value = urlToCopy;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
@@ -404,7 +410,7 @@
             const data = decodeData();
             
             if (data === null) {
-                // No hash, show welcome page
+                // No data, show welcome page
                 container.innerHTML = renderWelcome();
                 document.title = 'VPS Benchmark - Performance Testing Tool';
             } else if (data === false) {
