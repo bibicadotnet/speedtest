@@ -196,11 +196,11 @@ function processAnsiCodes(text) {
         .replace(/(Total Mem\s*:\s*)([^(]+)/g, '$1<span style="color: #ffff00;">$2</span>')
         .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
         
-        // Green/Red cho status
-        .replace(/(\[OK\])/g, '<span style="color: #00ff00;">✓ Enabled</span>')
-        .replace(/(\[FAIL\])/g, '<span style="color: #ff0000;">✗ Disabled</span>')
-        .replace(/(Online)/g, '<span style="color: #00ff00;">✓ Online</span>')
-        .replace(/(Offline)/g, '<span style="color: #ff0000;">✗ Offline</span>')
+        // Green/Red cho status - SỬA ĐỂ TRÁNH TRÙNG LẶP
+        .replace(/\[OK\]/g, '<span style="color: #00ff00;">✓ Enabled</span>')
+        .replace(/\[FAIL\]/g, '<span style="color: #ff0000;">✗ Disabled</span>')
+        .replace(/✓ Online/g, '<span style="color: #00ff00;">✓ Online</span>')
+        .replace(/✗ Offline/g, '<span style="color: #ff0000;">✗ Offline</span>')
         
         // I/O Speed - Yellow
         .replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
@@ -208,7 +208,18 @@ function processAnsiCodes(text) {
         // Organization/Location - Blue/Yellow
         .replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
         .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-        .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
+        .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>')
+        
+        // THÊM MỚI: Speed test table colors
+        // Node names (yellow), Upload (green), Download (red), Latency (cyan)
+        .replace(/(\s+Speedtest\.net)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+ms)/g,
+            '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>')
+        .replace(/(\s+[A-Za-z\s,\.]+(?:US|FR|DE|HK|SG|JP|VN))\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+Mbps)\s+(\d+[\.\d]*\s+ms)/g, 
+            '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>')
+        
+        // THÊM MỚI: Speed test header
+        .replace(/(Node Name)\s+(Upload Speed)\s+(Download Speed)\s+(Latency)/g,
+            '<span style="color: #ffff00;">$1</span>    <span style="color: #00ff00;">$2</span>    <span style="color: #ff0000;">$3</span>    <span style="color: #00ffff;">$4</span>');
 }
 
         function renderWelcome() {
