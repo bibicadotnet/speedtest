@@ -11,7 +11,22 @@ Tác giả viết từ 2015, sau này dùng cho trang `bench.sh`, mà ảnh xài
 Cá nhân, mình nghĩ nên thêm vào kết quả `Geekbench` như `yabs.sh` đang dùng để xem hiệu năng CPU, thêm cả phần kernel `TCP/IP` stack nữa thì bài benchmark sẽ tương đối đầy đủ số liệu
 
 Có điều nếu thêm hết vào, chạy 1 bài test, có khi mất 15-20 phút, quá dài so với nhu cầu thông thường
-
+```
+speedtest/
+├── .github/
+│   └── workflows/
+│       └── main.yml
+├── functions/
+│   ├── api/
+│   │   └── upload.js 
+│   ├── [slug].js
+│   └── index.js
+├── scripts/
+│   └── check_speedtest.py
+├── README.md
+├── bench.sh
+└── index.html
+```
 # Tự động thay đổi locaiton
 
 - Dùng cũng 2-3 năm nay, mà thi thoảng location Việt Nam, các cụ VNPT, FPT, Viettel đổi ID xoành xoạch, vào check cứ thấy sập, sửa thủ công thì mệt như bò đá, nên bổ xung thêm tính năng tự cập nhập lại ID, tránh các tình huống này
