@@ -223,95 +223,96 @@
         }
         
         function processAnsiCodes(text) {
-            // Xử lý đầu tiên, thay thế ký hiệu đặc biệt
+            // Xử lý đầu tiên, xử lý các kí tự đặc biệt đã được strip
             text = text
                 .replace(/\[OK\]/g, '✓')
                 .replace(/\[FAIL\]/g, '✗');
-        
-            // Version - Green nhạt
-            text = text.replace(/(Version\s*:\s*)(.+)/g, '$1<span style="color: #7fff8f;">$2</span>');
-        
-            // Usage - Red nhạt
-            text = text.replace(/(Usage\s*:\s*)(.+)/g, '$1<span style="color: #ff6b6b;">$2</span>');
-        
-            // System info - Blue dịu hơn
-            const blueColor = "#7ec4cf";
-            text = text.replace(/(CPU Model\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(CPU Cores\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(CPU Cache\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(System uptime\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Load average\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(OS\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Arch\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Kernel\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Virtualization\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>');
-        
-            // Disk/Mem/TCP - Yellow dịu hơn
-            const yellowColor = "#e6c200";
-            text = text.replace(/(Total Disk\s*:\s*)([^(]+)(\([^)]+\))/g, 
-                '$1<span style="color: ' + yellowColor + ';">$2</span><span style="color: ' + blueColor + ';">$3</span>')
-                      .replace(/(Total Mem\s*:\s*)([^(]+)(\([^)]+\))/g,
-                        '$1<span style="color: ' + yellowColor + ';">$2</span><span style="color: ' + blueColor + ';">$3</span>')
-                      .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: ' + yellowColor + ';">$2</span>');
-        
-            // AES-NI & VM-x/AMD-V - Green/Red dịu hơn
-            text = text.replace(/(AES-NI\s*:\s*)(✓ Enabled)/g, '$1<span style="color: #7fff8f;">$2</span>')
-                      .replace(/(AES-NI\s*:\s*)(✗ Disabled)/g, '$1<span style="color: #ff6b6b;">$2</span>')
-                      .replace(/(VM-x\/AMD-V\s*:\s*)(✓ Enabled)/g, '$1<span style="color: #7fff8f;">$2</span>')
-                      .replace(/(VM-x\/AMD-V\s*:\s*)(✗ Disabled)/g, '$1<span style="color: #ff6b6b;">$2</span>');
-        
-            // IPv4/IPv6 status - Online xanh, Offline đỏ dịu
+
+            // Xử lý header section
+            text = text.replace(/(Version\s*:\s*)(.+)/g, '$1<span style="color: #00ff00;">$2</span>')
+                       .replace(/(Usage\s*:\s*)(.+)/g, '$1<span style="color: #ff0000;">$2</span>');
+
+            // Xử lý system info - Blue color
+            text = text.replace(/(CPU Model\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(CPU Cores\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(CPU Cache\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(System uptime\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Load average\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(OS\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Arch\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Kernel\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Virtualization\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>');
+
+            // Yellow color cho disk/memory/TCP
+            text = text.replace(/(Total Disk\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #3A96DD;">$3</span>')
+                       .replace(/(Total Mem\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #3A96DD;">$3</span>')
+                       .replace(/(Total Swap\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
+
+            // Green/Red cho AES-NI và VM-x/AMD-V status
+            text = text.replace(/(AES-NI\s*:\s*)(✓ Enabled)/g, '$1<span style="color: #00ff00;">$2</span>')
+                       .replace(/(AES-NI\s*:\s*)(✗ Disabled)/g, '$1<span style="color: #ff0000;">$2</span>')
+                       .replace(/(VM-x\/AMD-V\s*:\s*)(✓ Enabled)/g, '$1<span style="color: #00ff00;">$2</span>')
+                       .replace(/(VM-x\/AMD-V\s*:\s*)(✗ Disabled)/g, '$1<span style="color: #ff0000;">$2</span>');
+
+            // IPv4/IPv6 status - xử lý cả Online và Offline  
             text = text.replace(/(IPv4\/IPv6\s*:\s*)(.+)/g, function(match, prefix, status) {
-                let processedStatus = status.replace(/✓ Online/g, '<span style="color: #7fff8f;">✓ Online</span>')
-                                           .replace(/✗ Offline/g, '<span style="color: #ff6b6b;">✗ Offline</span>');
+                let processedStatus = status.replace(/✓ Online/g, '<span style="color: #00ff00;">✓ Online</span>')
+                                           .replace(/✗ Offline/g, '<span style="color: #ff0000;">✗ Offline</span>');
                 return prefix + processedStatus;
             });
-        
-            // I/O Speed - Yellow dịu
-            text = text.replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: ' + yellowColor + ';">$2</span>');
-        
+
+            // I/O Speed - Yellow
+            text = text.replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
+
             // Organization/Location/Region - Blue/Yellow
-            text = text.replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: ' + blueColor + ';">$2</span>')
-                      .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: ' + yellowColor + ';">$2</span>');
-        
-            // Xử lý bảng speedtest
+            text = text.replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
+
+            // Xử lý bảng speedtest - chỉ áp dụng cho các dòng có format chuẩn của speedtest
+            // Tìm phần speedtest table (sau dòng "Node Name Upload Speed Download Speed Latency")
             const lines = text.split('\n');
             let inSpeedTestSection = false;
             let speedTestHeaderFound = false;
-        
+            
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-        
+                
+                // Detect speedtest header
                 if (line.includes('Node Name') && line.includes('Upload Speed') && line.includes('Download Speed') && line.includes('Latency')) {
                     speedTestHeaderFound = true;
                     inSpeedTestSection = true;
                     continue;
                 }
-        
+                
+                // Process speedtest data lines
                 if (inSpeedTestSection && speedTestHeaderFound) {
+                    // Stop if we hit a separator line or empty line that indicates end of speedtest
                     if (line.trim() === '' || line.match(/^-+$/)) {
                         inSpeedTestSection = false;
                         continue;
                     }
-        
+                    
+                    // Check if this line looks like speedtest data (has upload/download speeds)
+                    // Format: " Node Name      Upload Speed    Download Speed     Latency"
                     const speedTestMatch = line.match(/^(\s+)([^\s].+?)(\s{2,})([0-9.,]+\s+[A-Za-z\/]+)(\s{2,})([0-9.,]+\s+[A-Za-z\/]+)(\s{2,})([0-9.,]+\s+[A-Za-z]+)(.*)$/);
                     
                     if (speedTestMatch) {
                         const [, leadingSpace, nodeName, space1, uploadSpeed, space2, downloadSpeed, space3, latency, remaining] = speedTestMatch;
-        
+                        
+                        // Apply colors: Node Name (yellow), Upload (green), Download (red), Latency (blue)
                         lines[i] = leadingSpace + 
-                                  '<span style="color: #e6c200;">' + nodeName + '</span>' + space1 +
-                                  '<span style="color: #7fff8f;">' + uploadSpeed + '</span>' + space2 +
-                                  '<span style="color: #ff6b6b;">' + downloadSpeed + '</span>' + space3 +
-                                  '<span style="color: #7ec4cf;">' + latency + '</span>' + remaining;
+                                  '<span style="color: #ffff00;">' + nodeName + '</span>' + space1 +
+                                  '<span style="color: #00ff00;">' + uploadSpeed + '</span>' + space2 +
+                                  '<span style="color: #ff0000;">' + downloadSpeed + '</span>' + space3 +
+                                  '<span style="color: #3A96DD;">' + latency + '</span>' + remaining;
                     }
                 }
             }
-        
+            
             return lines.join('\n');
         }
-
 
         function copyCommand() {
             const command = 'wget -qO- https://benchmark.bibica.net | bash';
