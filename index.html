@@ -233,20 +233,20 @@
                        .replace(/(Usage\s*:\s*)(.+)/g, '$1<span style="color: #ff0000;">$2</span>');
 
             // Xử lý system info - Blue color
-            text = text.replace(/(CPU Model\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(CPU Cores\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(CPU Cache\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(System uptime\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(Load average\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(OS\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(Arch\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(Kernel\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(Virtualization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>');
+            text = text.replace(/(CPU Model\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(CPU Cores\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(CPU Cache\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(System uptime\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Load average\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(OS\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Arch\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Kernel\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Virtualization\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>');
 
             // Yellow color cho disk/memory/TCP
-            text = text.replace(/(Total Disk\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #00ffff;">$3</span>')
-                       .replace(/(Total Mem\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #00ffff;">$3</span>')
-                       .replace(/(Total Swap\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+            text = text.replace(/(Total Disk\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #3A96DD;">$3</span>')
+                       .replace(/(Total Mem\s*:\s*)([^(]+)(\([^)]+\))/g, '$1<span style="color: #ffff00;">$2</span><span style="color: #3A96DD;">$3</span>')
+                       .replace(/(Total Swap\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
                        .replace(/(TCP CC\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
 
             // Green/Red cho AES-NI và VM-x/AMD-V status
@@ -266,8 +266,8 @@
             text = text.replace(/(I\/O Speed.*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
 
             // Organization/Location/Region - Blue/Yellow
-            text = text.replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
-                       .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #00ffff;">$2</span>')
+            text = text.replace(/(Organization\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
+                       .replace(/(Location\s*:\s*)(.+)/g, '$1<span style="color: #3A96DD;">$2</span>')
                        .replace(/(Region\s*:\s*)(.+)/g, '$1<span style="color: #ffff00;">$2</span>');
 
             // Xử lý bảng speedtest - chỉ áp dụng cho các dòng có format chuẩn của speedtest
@@ -306,7 +306,7 @@
                                   '<span style="color: #ffff00;">' + nodeName + '</span>' + space1 +
                                   '<span style="color: #00ff00;">' + uploadSpeed + '</span>' + space2 +
                                   '<span style="color: #ff0000;">' + downloadSpeed + '</span>' + space3 +
-                                  '<span style="color: #00ffff;">' + latency + '</span>' + remaining;
+                                  '<span style="color: #3A96DD;">' + latency + '</span>' + remaining;
                     }
                 }
             }
@@ -356,7 +356,7 @@
                     </div>
                     <p>Your results will be stored permanently with a clean, shareable URL</p>
                     <div style="margin-top: 30px;">
-                        <a href="https://raw.githubusercontent.com/bibicadotnet/speedtest/main/bench.sh" target="_blank" style="color: #00ffff; text-decoration: none; font-size: 1.1em;">
+                        <a href="https://raw.githubusercontent.com/bibicadotnet/speedtest/main/bench.sh" target="_blank" style="color: #3A96DD; text-decoration: none; font-size: 1.1em;">
                             📖 View Script Source
                         </a>
                     </div>
