@@ -43,20 +43,22 @@
        text-shadow: 0 0 10px #00ffff;
     }
     .benchmark-data { 
-        background: #000; 
+        background: rgba(0, 0, 0, 0.7); /* Giảm độ chói với opacity */
         padding: 25px; 
         border-radius: 10px; 
         overflow-x: auto; 
-        border: 1px solid #333; 
+        border: 1px solid #444; /* Màu viền nhạt hơn */
         white-space: pre;
         font-size: 16px;
-        line-height: 1.5;
+        line-height: 1.6; /* Tăng khoảng cách dòng */
         font-family: 'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace;
-        color: #ffffff;
+        color: #e0e0e0; /* Màu chữ dịu hơn thay vì trắng tinh */
         font-weight: normal;
-        max-width: 80ch; /* Giới hạn theo số ký tự */
-        margin: 0 auto; /* Center align */
-        width: fit-content; /* Fit theo content */
+        max-width: 80ch;
+        margin: 0 auto;
+        width: fit-content;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.05); /* Giảm hiệu ứng glow */
+        text-shadow: 0 0 5px rgba(224, 224, 224, 0.1); /* Thêm text-shadow mờ nhẹ */
     }
     .footer { 
        text-align: center; 
