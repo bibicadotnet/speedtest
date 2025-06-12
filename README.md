@@ -38,7 +38,7 @@ https://www.speedtest.net/api/js/servers?engine=js&https_functional=true&limit=1
 - Cứ tìm kiếm 1 thành phố cụ thể, rồi lấy 1 ID nào đó trong danh sách hiện tại là được, lý thuyết cụm đó sẽ live, đỡ phải xử lý check xem cụm đó ra làm sao
 - Để lấy cụ thể 1 nhà cung cấp nào đó, bổ xung thêm hình thức ưu tiên, thêm thẳng tên nhà cung cấp đó vào, sẽ ưu tiên lấy theo ID của họ
 
-Cách thức khá là thủ công, mà chạy thấy cũng ổn, check tầm 10-12s là xong
+Cách thức khá là thủ công, mà chạy thấy cũng ổn, tổng thời gian lấy ID từ code, check, trả ngược kết quả tầm 10s-12s là xong
   
 ```
 Run python scripts/check_speedtest.py
