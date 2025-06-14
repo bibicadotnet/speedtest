@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="https://i.bibica.net/2025/06/2025-06-11-19-33-19.png">
-</p>
+<img src="https://imgur.bibica.net/4tBA/Xa39ECFq.png" alt="Image">
 
 # speedtest
 
