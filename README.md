@@ -1,4 +1,4 @@
-<img src="https://imgur.bibica.net/4tBA/Xa39ECFq.png" alt="Image">
+![VcQdJpKw](https://img.bibica.net/VcQdJpKw.webp)
 
 # speedtest
 
@@ -11,7 +11,7 @@ wget -qO- https://benchmark.bibica.net | bash
 Tác giả viết từ 2015, sau này dùng cho trang `bench.sh`, mà ảnh xài check toàn mấy location China, ở Việt Nam check thì hơi thừa, nên mình sửa thành location Việt Nam thêm vào, còn lại như bản gốc
 
 <p align="center">
-  <img src="https://i.bibica.net/2025/06/2025-06-11-21-04-42.png">
+<img src="https://img.bibica.net/3eGXhR0k.webp" alt="3eGXhR0k">
 </p>
 
 Cá nhân, mình nghĩ nên thêm vào kết quả `Geekbench` như `yabs.sh` đang dùng để xem hiệu năng CPU, thêm cả phần kernel `TCP/IP` stack nữa thì bài benchmark sẽ tương đối đầy đủ số liệu
