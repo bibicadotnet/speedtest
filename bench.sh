@@ -49,7 +49,7 @@ speed_test() {
 # Run all speed tests
 speed() {
     speed_test '' 'Speedtest.net'
-    speed_test '14236' 'Los Angeles, US'; speed_test '61933' 'Paris, FR'; speed_test '49516' 'Berlin, DE'
+    speed_test '14236' 'Los Angeles, US'; speed_test '61933' 'Paris, FR'; speed_test '20507' 'Berlin, DE'
     speed_test '63143' 'Hong Kong, HK'; speed_test '13623' 'Singapore, SG'; speed_test '48463' 'Tokyo, JP'
     speed_test '2552' 'FPT Telecom, VN'; speed_test '45493' 'VNPT-NET, VN'; speed_test '9903' 'Viettel, VN'
 }
